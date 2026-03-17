@@ -313,67 +313,87 @@
         // ==========================================
         // AUTH & ACCESS CONTROL
         // ==========================================
-        document.getElementById('btnLoginGoogle').onclick = () => signInWithPopup(auth, provider);
+        document.getElementById('btnLoginGoogle').onclick = async () => {
+            try {
+                toggleLoading(true, 'กำลังเปิดหน้าต่างล็อกอิน...');
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                toggleLoading(false);
+                showError("เข้าสู่ระบบล้มเหลว: " + error.message);
+            }
+        };
+
         document.getElementById('btnLogout').onclick = () => signOut(auth);
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                toggleLoading(true, 'กำลังเข้าสู่ระบบ...');
-                
-                // 1. Fetch Teacher Emails
-                await syncTeacherEmails();
+            try {
+                if (user) {
+                    currentUser = user;
+                    toggleLoading(true, 'กำลังเตรียมข้อมูลระบบ...');
+                    
+                    // 1. Fetch Teacher Emails
+                    await syncTeacherEmails();
 
-                // 2. Determine Role
-                let role = 'student';
-                if (user.email === SUPER_ADMIN_EMAIL) role = 'admin';
-                else if (teacherEmails.includes(user.email)) role = 'teacher';
+                    // 2. Determine Role
+                    let role = 'student';
+                    if (user.email === SUPER_ADMIN_EMAIL) role = 'admin';
+                    else if (teacherEmails.includes(user.email)) role = 'teacher';
 
-                // 3. Get/Create Profile
-                const userSnap = await getDoc(doc(db, 'users', user.uid));
-                if (userSnap.exists()) {
-                    userProfile = userSnap.data();
-                    // Update role if changed
-                    if (userProfile.role !== role) {
-                        await updateDoc(doc(db, 'users', user.uid), { role });
-                        userProfile.role = role;
-                    }
-                } else {
-                    // Auto-register Admin/Teacher, or force student to register
-                    if (role === 'admin' || role === 'teacher') {
-                        userProfile = { 
-                            name: user.displayName, 
-                            email: user.email, 
-                            role, 
-                            studentId: '-', 
-                            classLevel: '-', 
-                            project: 'ดูแลห้องแล็บ' 
-                        };
-                        await setDoc(doc(db, 'users', user.uid), userProfile);
+                    // 3. Get/Create Profile
+                    const userSnap = await getDoc(doc(db, 'users', user.uid));
+                    if (userSnap.exists()) {
+                        userProfile = userSnap.data();
+                        // Update role if changed
+                        if (userProfile.role !== role) {
+                            await updateDoc(doc(db, 'users', user.uid), { role });
+                            userProfile.role = role;
+                        }
                     } else {
-                        toggleLoading(false);
-                        showView('view-register');
-                        return;
+                        // Auto-register Admin/Teacher, or force student to register
+                        if (role === 'admin' || role === 'teacher') {
+                            userProfile = { 
+                                name: user.displayName, 
+                                email: user.email, 
+                                role, 
+                                studentId: '-', 
+                                classLevel: '-', 
+                                project: 'ดูแลห้องแล็บ' 
+                            };
+                            await setDoc(doc(db, 'users', user.uid), userProfile);
+                        } else {
+                            toggleLoading(false);
+                            showView('view-register');
+                            return;
+                        }
                     }
+                    
+                    setupUIForRole();
+                    loadDashboard();
+                } else {
+                    currentUser = null;
+                    userProfile = null;
+                    document.getElementById('navbar').classList.add('hidden');
+                    showView('view-login');
+                    toggleLoading(false);
                 }
-                
-                setupUIForRole();
-                loadDashboard();
-            } else {
-                currentUser = null;
-                userProfile = null;
-                document.getElementById('navbar').classList.add('hidden');
-                showView('view-login');
+            } catch (error) {
+                console.error("Initialization Error:", error);
                 toggleLoading(false);
+                showError("เกิดข้อผิดพลาดในการเริ่มต้นระบบ: " + error.message);
             }
         });
 
         async function syncTeacherEmails() {
-            const docSnap = await getDoc(doc(db, 'settings', 'teachers'));
-            if (docSnap.exists()) {
-                teacherEmails = docSnap.data().list || [];
-            } else if (currentUser.email === SUPER_ADMIN_EMAIL) {
-                await setDoc(doc(db, 'settings', 'teachers'), { list: [] });
+            try {
+                const docSnap = await getDoc(doc(db, 'settings', 'teachers'));
+                if (docSnap.exists()) {
+                    teacherEmails = docSnap.data().list || [];
+                } else if (currentUser && currentUser.email === SUPER_ADMIN_EMAIL) {
+                    await setDoc(doc(db, 'settings', 'teachers'), { list: [] });
+                    teacherEmails = [];
+                }
+            } catch (e) {
+                console.warn("Could not sync teacher emails, defaulting to empty list.", e);
                 teacherEmails = [];
             }
         }
@@ -382,7 +402,7 @@
             document.getElementById('navbar').classList.remove('hidden');
             document.getElementById('navUserName').innerText = userProfile.name;
             document.getElementById('navUserEmail').innerText = currentUser.email;
-            document.getElementById('userPhoto').src = currentUser.photoURL;
+            document.getElementById('userPhoto').src = currentUser.photoURL || 'https://www.svgrepo.com/show/452030/avatar-default.svg';
             
             const badge = document.getElementById('roleBadge');
             badge.classList.remove('hidden');
@@ -406,21 +426,26 @@
         // ==========================================
         document.getElementById('formRegister').onsubmit = async (e) => {
             e.preventDefault();
-            toggleLoading(true, 'กำลังบันทึก...');
-            const data = {
-                uid: currentUser.uid,
-                name: document.getElementById('regName').value,
-                studentId: document.getElementById('regId').value,
-                classLevel: document.getElementById('regClass').value,
-                project: document.getElementById('regProject').value,
-                email: currentUser.email,
-                role: 'student',
-                createdAt: serverTimestamp()
-            };
-            await setDoc(doc(db, 'users', currentUser.uid), data);
-            userProfile = data;
-            setupUIForRole();
-            loadDashboard();
+            toggleLoading(true, 'กำลังบันทึกข้อมูลนักเรียน...');
+            try {
+                const data = {
+                    uid: currentUser.uid,
+                    name: document.getElementById('regName').value,
+                    studentId: document.getElementById('regId').value,
+                    classLevel: document.getElementById('regClass').value,
+                    project: document.getElementById('regProject').value,
+                    email: currentUser.email,
+                    role: 'student',
+                    createdAt: serverTimestamp()
+                };
+                await setDoc(doc(db, 'users', currentUser.uid), data);
+                userProfile = data;
+                setupUIForRole();
+                loadDashboard();
+            } catch (error) {
+                toggleLoading(false);
+                showError("บันทึกข้อมูลไม่สำเร็จ: " + error.message);
+            }
         };
 
         // ==========================================
@@ -445,31 +470,35 @@
             monitorActiveBooking();
             // Load Logs
             fetchRecentLogs();
+            
+            // Ensure loader is closed after everything is triggered
+            setTimeout(() => toggleLoading(false), 500);
         };
 
         async function fetchLatestLabState() {
-            // ดึงรายการที่สำเร็จล่าสุด 1 รายการ
-            const q = query(collection(db, 'bookings'), where('status', '==', 'completed'), orderBy('checkOutTime', 'desc'), limit(1));
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-                const data = snap.docs[0].data();
-                const imgEl = document.getElementById('lastLabPhoto');
-                imgEl.src = data.afterPhotoUrl;
-                imgEl.classList.remove('hidden');
-                document.getElementById('noPhotoPlaceholder').classList.add('hidden');
-                document.getElementById('lastPhotoUser').innerText = data.studentName;
-                document.getElementById('lastUpdated').innerText = data.checkOutTime?.toDate().toLocaleString('th-TH');
+            try {
+                const q = query(collection(db, 'bookings'), where('status', '==', 'completed'), orderBy('checkOutTime', 'desc'), limit(1));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    const data = snap.docs[0].data();
+                    const imgEl = document.getElementById('lastLabPhoto');
+                    imgEl.src = data.afterPhotoUrl;
+                    imgEl.classList.remove('hidden');
+                    document.getElementById('noPhotoPlaceholder').classList.add('hidden');
+                    document.getElementById('lastPhotoUser').innerText = data.studentName;
+                    document.getElementById('lastUpdated').innerText = data.checkOutTime?.toDate().toLocaleString('th-TH');
+                }
+            } catch (e) {
+                console.warn("Could not fetch lab state:", e);
             }
         }
 
         function monitorActiveBooking() {
-            // FIX: ใช้ Query ง่ายๆ เพื่อไม่ให้ติด Index Error
-            // ดึงเฉพาะ bookings ของ user คนนี้
+            if (!currentUser) return;
             const q = query(collection(db, 'bookings'), where('uid', '==', currentUser.uid));
             
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById('bookingStatusContainer');
-                // กรองข้อมูลใน memory แทน
                 const active = snapshot.docs
                     .map(d => ({id: d.id, ...d.data()}))
                     .filter(b => b.status !== 'completed' && b.status !== 'cancelled')
@@ -481,8 +510,9 @@
                     renderActiveBooking(container, active);
                 }
             }, (err) => {
-                console.error(err);
-                showError("เกิดข้อผิดพลาดในการดึงข้อมูลจอง โปรดติดต่อ Admin");
+                console.error("Booking Snapshot Error:", err);
+                const container = document.getElementById('bookingStatusContainer');
+                container.innerHTML = `<p class="text-red-500 text-sm italic">ไม่สามารถเชื่อมต่อข้อมูลการจองได้ (${err.code})</p>`;
             });
         }
 
@@ -540,29 +570,33 @@
         }
 
         async function fetchRecentLogs() {
-            const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'), limit(5));
-            const snap = await getDocs(q);
-            const container = document.getElementById('recentLogs');
-            container.innerHTML = '';
-            
-            if (snap.empty) {
-                container.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm italic">ยังไม่มีประวัติกิจกรรม</div>';
-                return;
-            }
+            try {
+                const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'), limit(5));
+                const snap = await getDocs(q);
+                const container = document.getElementById('recentLogs');
+                container.innerHTML = '';
+                
+                if (snap.empty) {
+                    container.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm italic">ยังไม่มีประวัติกิจกรรม</div>';
+                    return;
+                }
 
-            snap.forEach(d => {
-                const data = d.data();
-                const icon = data.status === 'completed' ? 'fa-check-circle text-green-500' : 'fa-clock text-blue-400';
-                container.innerHTML += `
-                    <div class="p-4 flex items-center gap-3">
-                        <i class="fa-solid ${icon} text-lg"></i>
-                        <div class="flex-grow">
-                            <p class="text-sm font-bold leading-none">${data.projectName}</p>
-                            <p class="text-[10px] text-gray-500 mt-1">${data.studentName} | ${data.status} | ${data.date}</p>
+                snap.forEach(d => {
+                    const data = d.data();
+                    const icon = data.status === 'completed' ? 'fa-check-circle text-green-500' : 'fa-clock text-blue-400';
+                    container.innerHTML += `
+                        <div class="p-4 flex items-center gap-3">
+                            <i class="fa-solid ${icon} text-lg"></i>
+                            <div class="flex-grow">
+                                <p class="text-sm font-bold leading-none">${data.projectName}</p>
+                                <p class="text-[10px] text-gray-500 mt-1">${data.studentName} | ${data.status} | ${data.date}</p>
+                            </div>
                         </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            } catch (e) {
+                console.warn("Could not fetch logs:", e);
+            }
         }
 
         // ==========================================
@@ -588,8 +622,7 @@
                 showToast('ส่งคำขอสำเร็จ');
                 loadDashboard();
             } catch (err) {
-                showError(err.message);
-            } finally {
+                showError("ส่งคำขอไม่สำเร็จ: " + err.message);
                 toggleLoading(false);
             }
         };
@@ -597,8 +630,15 @@
         window.cancelBooking = async (id) => {
             const res = await Swal.fire({ title: 'ยืนยันยกเลิก?', text: 'คุณต้องการยกเลิกคำขอนี้ใช่หรือไม่', icon: 'warning', showCancelButton: true });
             if (res.isConfirmed) {
-                await updateDoc(doc(db, 'bookings', id), { status: 'cancelled' });
-                showToast('ยกเลิกแล้ว');
+                try {
+                    toggleLoading(true, 'กำลังยกเลิก...');
+                    await updateDoc(doc(db, 'bookings', id), { status: 'cancelled' });
+                    showToast('ยกเลิกแล้ว');
+                    toggleLoading(false);
+                } catch (e) {
+                    toggleLoading(false);
+                    showError(e.message);
+                }
             }
         };
 
@@ -608,13 +648,18 @@
                 const file = e.target.files[0];
                 if(!file) return;
                 toggleLoading(true, 'กำลังอัปโหลดรูปภาพ...');
-                const sRef = ref(storage, `lab_photos/${id}_before.jpg`);
-                await uploadBytes(sRef, file);
-                const url = await getDownloadURL(sRef);
-                await updateDoc(doc(db, 'bookings', id), { status: 'in_progress', beforePhotoUrl: url, checkInTime: serverTimestamp() });
-                await sendTGPhoto(file, `📸 <b>เช็คอินเข้าห้องแล็บ</b>\n<b>กลุ่ม:</b> ${userProfile.project}\nสภาพห้องก่อนเริ่มงาน ⬇️`);
-                toggleLoading(false);
-                showToast('เช็คอินเรียบร้อย');
+                try {
+                    const sRef = ref(storage, `lab_photos/${id}_before.jpg`);
+                    await uploadBytes(sRef, file);
+                    const url = await getDownloadURL(sRef);
+                    await updateDoc(doc(db, 'bookings', id), { status: 'in_progress', beforePhotoUrl: url, checkInTime: serverTimestamp() });
+                    await sendTGPhoto(file, `📸 <b>เช็คอินเข้าห้องแล็บ</b>\n<b>กลุ่ม:</b> ${userProfile.project}\nสภาพห้องก่อนเริ่มงาน ⬇️`);
+                    toggleLoading(false);
+                    showToast('เช็คอินเรียบร้อย');
+                } catch (err) {
+                    toggleLoading(false);
+                    showError(err.message);
+                }
             };
             input.click();
         };
@@ -640,14 +685,19 @@
                         const file = e.target.files[0];
                         if(!file) return;
                         toggleLoading(true, 'กำลังส่งรูปรายงาน...');
-                        const sRef = ref(storage, `lab_photos/${id}_after.jpg`);
-                        await uploadBytes(sRef, file);
-                        const url = await getDownloadURL(sRef);
-                        await updateDoc(doc(db, 'bookings', id), { status: 'completed', afterPhotoUrl: url, checkOutTime: serverTimestamp() });
-                        await sendTGPhoto(file, `✅ <b>เช็คเอาท์คืนห้องแล็บ</b>\n<b>กลุ่ม:</b> ${userProfile.project}\nสภาพห้องหลังทำความสะอาด ⬇️`);
-                        toggleLoading(false);
-                        Swal.fire('ขอบคุณ!', 'การใช้งานของคุณเสร็จสมบูรณ์แล้ว', 'success');
-                        loadDashboard();
+                        try {
+                            const sRef = ref(storage, `lab_photos/${id}_after.jpg`);
+                            await uploadBytes(sRef, file);
+                            const url = await getDownloadURL(sRef);
+                            await updateDoc(doc(db, 'bookings', id), { status: 'completed', afterPhotoUrl: url, checkOutTime: serverTimestamp() });
+                            await sendTGPhoto(file, `✅ <b>เช็คเอาท์คืนห้องแล็บ</b>\n<b>กลุ่ม:</b> ${userProfile.project}\nสภาพห้องหลังทำความสะอาด ⬇️`);
+                            toggleLoading(false);
+                            Swal.fire('ขอบคุณ!', 'การใช้งานของคุณเสร็จสมบูรณ์แล้ว', 'success');
+                            loadDashboard();
+                        } catch (err) {
+                            toggleLoading(false);
+                            showError(err.message);
+                        }
                     };
                     input.click();
                 }
@@ -660,8 +710,9 @@
         onSnapshot(collection(db, 'bookings'), (snap) => {
             const list = document.getElementById('adminBookingList');
             const empty = document.getElementById('adminEmptyState');
-            list.innerHTML = '';
+            if (!list) return;
             
+            list.innerHTML = '';
             const pending = snap.docs
                 .map(d => ({id: d.id, ...d.data()}))
                 .filter(b => b.status === 'pending');
@@ -690,35 +741,54 @@
                     </tr>
                 `;
             });
-        });
+        }, (err) => console.error("Admin Monitor Error:", err));
 
         window.adminApprove = async (id, proj) => {
             toggleLoading(true, 'กำลังอนุมัติ...');
-            await updateDoc(doc(db, 'bookings', id), { status: 'approved' });
-            await sendTG(`✅ <b>อนุมัติแล้ว!</b>\nห้องโครงงานเปิดให้กลุ่ม [${proj}] เข้าใช้งานได้แล้วครับ`);
-            toggleLoading(false);
-            showToast('อนุมัติแล้ว');
+            try {
+                await updateDoc(doc(db, 'bookings', id), { status: 'approved' });
+                await sendTG(`✅ <b>อนุมัติแล้ว!</b>\nห้องโครงงานเปิดให้กลุ่ม [${proj}] เข้าใช้งานได้แล้วครับ`);
+                toggleLoading(false);
+                showToast('อนุมัติแล้ว');
+            } catch (e) {
+                toggleLoading(false);
+                showError(e.message);
+            }
         };
 
         // Manage Teachers
         document.getElementById('btnAddTeacher').onclick = async () => {
             const email = document.getElementById('newTeacherEmail').value.trim();
             if (!email) return;
-            if (!teacherEmails.includes(email)) {
-                teacherEmails.push(email);
-                await setDoc(doc(db, 'settings', 'teachers'), { list: teacherEmails });
-                document.getElementById('newTeacherEmail').value = '';
-                showToast('เพิ่มครูผู้สอนแล้ว');
-                renderTeacherList();
+            try {
+                toggleLoading(true, 'กำลังเพิ่มรายชื่อครู...');
+                if (!teacherEmails.includes(email)) {
+                    teacherEmails.push(email);
+                    await setDoc(doc(db, 'settings', 'teachers'), { list: teacherEmails });
+                    document.getElementById('newTeacherEmail').value = '';
+                    showToast('เพิ่มครูผู้สอนแล้ว');
+                    renderTeacherList();
+                }
+                toggleLoading(false);
+            } catch (e) {
+                toggleLoading(false);
+                showError(e.message);
             }
         };
 
         window.removeTeacher = async (email) => {
             const res = await Swal.fire({ title: 'ลบชื่อครู?', text: `ต้องการลบ ${email} ออกจากระบบใช่หรือไม่`, icon: 'warning', showCancelButton: true });
             if (res.isConfirmed) {
-                teacherEmails = teacherEmails.filter(e => e !== email);
-                await setDoc(doc(db, 'settings', 'teachers'), { list: teacherEmails });
-                renderTeacherList();
+                try {
+                    toggleLoading(true, 'กำลังลบ...');
+                    teacherEmails = teacherEmails.filter(e => e !== email);
+                    await setDoc(doc(db, 'settings', 'teachers'), { list: teacherEmails });
+                    renderTeacherList();
+                    toggleLoading(false);
+                } catch (e) {
+                    toggleLoading(false);
+                    showError(e.message);
+                }
             }
         };
 
