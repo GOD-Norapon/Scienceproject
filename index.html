@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMTE Lab Booking System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 (แทน alert() ปกติเพื่อความสวยงาม) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; }
+        .view-section { display: none; animation: fadeIn 0.4s ease-in-out; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Checkbox styling */
+        .checklist-item input:checked + label { text-decoration: line-through; color: #10b981; }
+    </style>
+</head>
+<body class="text-gray-800 antialiased h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-600 text-white shadow-md p-4 flex justify-between items-center z-10 hidden" id="navbar">
+        <div class="font-bold text-lg flex items-center gap-2">
+            <i class="fa-solid fa-flask"></i> SMTE Lab
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="btnAdminToggle" class="text-sm bg-blue-800 px-3 py-1 rounded-full hover:bg-blue-900 transition"><i class="fa-solid fa-user-shield"></i> ครูผู้สอน</button>
+            <div id="userInfoNav" class="text-sm font-medium"></div>
+            <button id="btnLogout" class="text-red-300 hover:text-white transition"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow overflow-y-auto p-4 md:p-8 flex justify-center items-start">
+        <div class="w-full max-w-md w-full">
+
+            <!-- 1. VIEW: Login -->
+            <div id="view-login" class="view-section active bg-white p-8 rounded-2xl shadow-lg text-center mt-10">
+                <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
+                    <i class="fa-solid fa-microscope"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">ระบบจองห้องโครงงาน</h2>
+                <p class="text-gray-500 mb-8 text-sm">เข้าสู่ระบบเพื่อใช้งานห้องปฏิบัติการ SMTE</p>
+                
+                <button id="btnLoginGoogle" class="w-full bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-50 transition shadow-sm font-medium">
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
+                    เข้าสู่ระบบด้วย Google
+                </button>
+            </div>
+
+            <!-- 2. VIEW: Register (First Time) -->
+            <div id="view-register" class="view-section bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2"><i class="fa-solid fa-user-plus text-blue-500"></i> สร้างโปรไฟล์นักเรียน</h2>
+                <p class="text-sm text-gray-500 mb-4">กรุณากรอกข้อมูลส่วนตัวสำหรับการใช้งานครั้งแรก</p>
+                <form id="formRegister" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">รหัสประจำตัวนักเรียน</label>
+                        <input type="text" id="regId" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ - นามสกุล</label>
+                        <input type="text" id="regName" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ชั้น</label>
+                            <select id="regClass" required class="w-full border border-gray-300 rounded-lg p-2.5 outline-none">
+                                <option value="ม.4">ม.4</option>
+                                <option value="ม.5">ม.5</option>
+                                <option value="ม.6">ม.6</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ห้อง</label>
+                            <input type="text" id="regRoom" placeholder="เช่น 1" required class="w-full border border-gray-300 rounded-lg p-2.5 outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อโครงงาน (สั้นๆ)</label>
+                        <input type="text" id="regProject" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition mt-4">บันทึกข้อมูล</button>
+                </form>
+            </div>
+
+            <!-- 3. VIEW: Dashboard (Student) -->
+            <div id="view-dashboard" class="view-section">
+                <!-- User Profile Card -->
+                <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-lg mb-6">
+                    <h3 class="font-bold text-lg" id="dashName">ชื่อนักเรียน</h3>
+                    <p class="text-sm text-blue-100 mb-1"><i class="fa-solid fa-id-card"></i> รหัส: <span id="dashId"></span> | ชั้น: <span id="dashClass"></span></p>
+                    <p class="text-sm text-blue-100"><i class="fa-solid fa-book"></i> โครงงาน: <span id="dashProject"></span></p>
+                </div>
+
+                <!-- Status Card -->
+                <div class="bg-white rounded-2xl p-6 shadow-md text-center" id="statusContainer">
+                    <!-- Dynamic Content will be injected here via JS -->
+                </div>
+            </div>
+
+            <!-- 4. VIEW: Request Booking -->
+            <div id="view-request" class="view-section bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2"><i class="fa-solid fa-calendar-plus text-blue-500"></i> แบบฟอร์มขอใช้ห้อง</h2>
+                <form id="formRequest" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">วันที่ต้องการใช้</label>
+                        <input type="date" id="reqDate" required class="w-full border border-gray-300 rounded-lg p-2.5 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">เวลาเริ่ม</label>
+                            <input type="time" id="reqTimeStart" required class="w-full border border-gray-300 rounded-lg p-2.5 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">เวลาสิ้นสุด</label>
+                            <input type="time" id="reqTimeEnd" required class="w-full border border-gray-300 rounded-lg p-2.5 outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">อุปกรณ์/สารเคมีหลักที่ต้องใช้ (ระบุเพื่อความปลอดภัย)</label>
+                        <textarea id="reqEquip" rows="3" required placeholder="เช่น บีกเกอร์ 2 ใบ, กรด HCl, เครื่องชั่ง..." class="w-full border border-gray-300 rounded-lg p-2.5 outline-none"></textarea>
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" onclick="loadDashboard()" class="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition">ยกเลิก</button>
+                        <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">ส่งคำขอ</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 5. VIEW: Admin Dashboard -->
+            <div id="view-admin" class="view-section">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold"><i class="fa-solid fa-user-shield text-blue-600"></i> แดชบอร์ดครูผู้สอน</h2>
+                    <button onclick="loadDashboard()" class="text-sm bg-gray-200 px-3 py-1 rounded-lg hover:bg-gray-300">กลับหน้าหลัก</button>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+                    <div class="p-4 bg-gray-50 border-b font-bold text-gray-700">รายการคำขอและสถานะปัจจุบัน</div>
+                    <div id="adminList" class="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+                        <!-- Admin list injected here -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Global Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
+        <div class="loader mb-4"></div>
+        <p class="text-blue-600 font-medium" id="loadingText">กำลังประมวลผล...</p>
+    </div>
+
+    <!-- Hidden Camera Input (Used for Check-in/Check-out) -->
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, onSnapshot, updateDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+        // ==========================================
+        // 1. CONFIGURATION
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcbi_mXodVvLwitoWO7QSyFPzLQOkJy0w",
+            authDomain: "scienceproject-1cd9f.firebaseapp.com",
+            projectId: "scienceproject-1cd9f",
+            storageBucket: "scienceproject-1cd9f.firebasestorage.app",
+            messagingSenderId: "1077097234623",
+            appId: "1:1077097234623:web:5b2540c9721e5384b6860a",
+            measurementId: "G-M0CXTHLN1X"
+        };
+
+        const TELEGRAM_TOKEN = "8035118786:AAGvQMvbgpGRQxvPTHxA3gWh-LjPt7nhfYg";
+        const TELEGRAM_CHAT_ID = "7742623919";
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const provider = new GoogleAuthProvider();
+
+        // State Variables
+        let currentUser = null;
+        let userProfile = null;
+        let currentBooking = null; // เก็บข้อมูลการจองปัจจุบัน
+        let unsubscribeBooking = null;
+
+        // ==========================================
+        // 2. UI HELPERS
+        // ==========================================
+        const showView = (viewId) => {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        };
+
+        const toggleLoading = (show, text = 'กำลังประมวลผล...') => {
+            const el = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').innerText = text;
+            if (show) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+        };
+
+        const showToast = (title, icon = 'success') => {
+            Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: 2000 });
+        };
+
+        const showError = (msg) => Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: msg, confirmButtonColor: '#3b82f6' });
+
+        // ==========================================
+        // 3. AUTHENTICATION & PROFILE
+        // ==========================================
+        document.getElementById('btnLoginGoogle').addEventListener('click', async () => {
+            try {
+                toggleLoading(true, 'กำลังเข้าสู่ระบบ...');
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                toggleLoading(false);
+                showError("เข้าสู่ระบบล้มเหลว: " + error.message);
+            }
+        });
+
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            Swal.fire({
+                title: 'ออกจากระบบ?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#9ca3af',
+                confirmButtonText: 'ออกจากระบบ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) signOut(auth);
+            });
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('navbar').classList.remove('hidden');
+                toggleLoading(true, 'กำลังโหลดข้อมูล...');
+                
+                // ตรวจสอบโปรไฟล์
+                const userRef = doc(db, 'users', user.uid);
+                const userSnap = await getDoc(userRef);
+                
+                if (userSnap.exists()) {
+                    userProfile = userSnap.data();
+                    document.getElementById('userInfoNav').innerText = userProfile.name.split(' ')[0]; // โชว์ชื่อสั้นๆ
+                    loadDashboard();
+                } else {
+                    // เพิ่งเข้าครั้งแรก ให้ไปหน้าลงทะเบียน
+                    toggleLoading(false);
+                    showView('view-register');
+                }
+            } else {
+                currentUser = null;
+                userProfile = null;
+                if(unsubscribeBooking) unsubscribeBooking();
+                document.getElementById('navbar').classList.add('hidden');
+                showView('view-login');
+                toggleLoading(false);
+            }
+        });
+
+        document.getElementById('formRegister').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            toggleLoading(true, 'กำลังบันทึกข้อมูล...');
+            try {
+                const profileData = {
+                    studentId: document.getElementById('regId').value,
+                    name: document.getElementById('regName').value,
+                    classLevel: document.getElementById('regClass').value + '/' + document.getElementById('regRoom').value,
+                    project: document.getElementById('regProject').value,
+                    email: currentUser.email,
+                    createdAt: serverTimestamp(),
+                    role: 'student' // default
+                };
+                
+                await setDoc(doc(db, 'users', currentUser.uid), profileData);
+                userProfile = profileData;
+                document.getElementById('userInfoNav').innerText = userProfile.name.split(' ')[0];
+                showToast('ลงทะเบียนสำเร็จ!');
+                loadDashboard();
+            } catch (error) {
+                toggleLoading(false);
+                showError(error.message);
+            }
+        });
+
+        // ==========================================
+        // 4. STUDENT DASHBOARD & BOOKING FLOW
+        // ==========================================
+        window.loadDashboard = () => {
+            showView('view-dashboard');
+            
+            // Set User Info UI
+            document.getElementById('dashName').innerText = userProfile.name;
+            document.getElementById('dashId').innerText = userProfile.studentId;
+            document.getElementById('dashClass').innerText = userProfile.classLevel;
+            document.getElementById('dashProject').innerText = userProfile.project;
+
+            if(unsubscribeBooking) unsubscribeBooking();
+
+            // Listen to active booking
+            const q = query(
+                collection(db, 'bookings'), 
+                where('uid', '==', currentUser.uid),
+                where('status', '!=', 'completed')
+            );
+
+            unsubscribeBooking = onSnapshot(q, (snapshot) => {
+                toggleLoading(false);
+                const container = document.getElementById('statusContainer');
+                
+                if (snapshot.empty) {
+                    currentBooking = null;
+                    renderStatusNone(container);
+                } else {
+                    currentBooking = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+                    renderStatusActive(container);
+                }
+            }, (error) => {
+                console.error("Firestore error:", error);
+                toggleLoading(false);
+                showError("ไม่สามารถดึงข้อมูลได้ โปรดรีเฟรชหน้าเว็บ");
+            });
+        };
+
+        const renderStatusNone = (container) => {
+            container.innerHTML = `
+                <div class="text-gray-400 text-5xl mb-4"><i class="fa-regular fa-calendar-xmark"></i></div>
+                <h4 class="text-lg font-bold mb-2">ยังไม่มีการจองห้อง</h4>
+                <p class="text-sm text-gray-500 mb-6">กดปุ่มด้านล่างเพื่อส่งคำขอจองห้องโครงงาน</p>
+                <button onclick="showView('view-request')" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow-md">
+                    <i class="fa-solid fa-plus mr-2"></i> จองห้องโครงงาน
+                </button>
+            `;
+        };
+
+        const renderStatusActive = (container) => {
+            const b = currentBooking;
+            let icon, color, title, desc, actionBtn;
+
+            if (b.status === 'pending') {
+                icon = '<i class="fa-solid fa-hourglass-half text-yellow-500"></i>';
+                color = 'bg-yellow-100 text-yellow-800';
+                title = 'รอครูอนุมัติ';
+                desc = 'ระบบได้แจ้งเตือนไปยังครูผู้สอนแล้ว กรุณารอการอนุมัติ';
+                actionBtn = `<button onclick="cancelBooking('${b.id}')" class="mt-4 text-sm text-red-500 underline">ยกเลิกคำขอ</button>`;
+            } 
+            else if (b.status === 'approved') {
+                icon = '<i class="fa-solid fa-check-circle text-green-500"></i>';
+                color = 'bg-green-100 text-green-800';
+                title = 'อนุมัติแล้ว';
+                desc = 'เมื่อถึงหน้าห้อง กรุณากดปุ่มด้านล่างและถ่ายรูปก่อนเข้าใช้งาน';
+                actionBtn = `
+                    <button onclick="handleCheckIn()" class="mt-4 w-full bg-green-500 text-white font-bold py-3 rounded-xl hover:bg-green-600 transition shadow-md">
+                        <i class="fa-solid fa-camera mr-2"></i> Check-in เข้าห้อง
+                    </button>`;
+            }
+            else if (b.status === 'in_progress') {
+                icon = '<i class="fa-solid fa-flask text-blue-500"></i>';
+                color = 'bg-blue-100 text-blue-800';
+                title = 'กำลังใช้งาน';
+                desc = 'กรุณารักษาความสะอาด เมื่อใช้งานเสร็จให้กดปุ่ม Check-out';
+                actionBtn = `
+                    <button onclick="handleCheckOut()" class="mt-4 w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600 transition shadow-md">
+                        <i class="fa-solid fa-broom mr-2"></i> Check-out คืนห้อง
+                    </button>`;
+            }
+
+            container.innerHTML = `
+                <div class="text-5xl mb-4">${icon}</div>
+                <div class="inline-block px-3 py-1 rounded-full text-xs font-bold ${color} mb-3">${title}</div>
+                <div class="text-left bg-gray-50 p-4 rounded-lg mb-4 text-sm">
+                    <p><strong>วันที่:</strong> ${b.date} (${b.timeStart} - ${b.timeEnd})</p>
+                    <p><strong>อุปกรณ์:</strong> ${b.equipment}</p>
+                </div>
+                <p class="text-sm text-gray-600">${desc}</p>
+                ${actionBtn}
+            `;
+        };
+
+        // ==========================================
+        // 5. ACTIONS (Request, Check-in, Check-out)
+        // ==========================================
+        
+        // 5.1 Submit Request
+        document.getElementById('formRequest').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            toggleLoading(true, 'กำลังส่งคำขอ...');
+            try {
+                const bookingData = {
+                    uid: currentUser.uid,
+                    studentName: userProfile.name,
+                    studentId: userProfile.studentId,
+                    classLevel: userProfile.classLevel,
+                    projectName: userProfile.project,
+                    date: document.getElementById('reqDate').value,
+                    timeStart: document.getElementById('reqTimeStart').value,
+                    timeEnd: document.getElementById('reqTimeEnd').value,
+                    equipment: document.getElementById('reqEquip').value,
+                    status: 'pending',
+                    createdAt: serverTimestamp()
+                };
+
+                const docRef = await addDoc(collection(db, 'bookings'), bookingData);
+                
+                // ส่ง Telegram แจ้งครู
+                const msg = `🔔 <b>คำขอใช้ห้องโครงงาน</b>\n\n`+
+                            `<b>กลุ่ม:</b> ${bookingData.projectName}\n`+
+                            `<b>ชื่อ:</b> ${bookingData.studentName} (${bookingData.classLevel})\n`+
+                            `<b>วันเวลา:</b> ${bookingData.date} [${bookingData.timeStart}-${bookingData.timeEnd}]\n`+
+                            `<b>อุปกรณ์ที่ใช้:</b> ${bookingData.equipment}\n`+
+                            `<b>สถานะ:</b> ⏳ รออนุมัติ`;
+                
+                await sendTelegramText(msg);
+
+                showToast('ส่งคำขอสำเร็จ!');
+                document.getElementById('formRequest').reset();
+                loadDashboard();
+            } catch (error) {
+                toggleLoading(false);
+                showError(error.message);
+            }
+        });
+
+        // Cancel Request
+        window.cancelBooking = async (id) => {
+            Swal.fire({
+                title: 'ยกเลิกคำขอ?',
+                text: "คุณต้องการยกเลิกคำขอจองห้องนี้ใช่หรือไม่?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ใช่, ยกเลิก'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    toggleLoading(true, 'กำลังยกเลิก...');
+                    await updateDoc(doc(db, 'bookings', id), { status: 'cancelled' });
+                    toggleLoading(false);
+                }
+            });
+        };
+
+        // 5.2 Check-in (Capture Before Photo)
+        window.handleCheckIn = () => {
+            const input = document.getElementById('cameraInput');
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                
+                toggleLoading(true, 'กำลังอัปโหลดรูปภาพ...');
+                try {
+                    // 1. Upload to Storage
+                    const storageRef = ref(storage, `lab_photos/${currentBooking.id}/before_${Date.now()}.jpg`);
+                    await uploadBytes(storageRef, file);
+                    const photoUrl = await getDownloadURL(storageRef);
+
+                    // 2. Update Firestore
+                    await updateDoc(doc(db, 'bookings', currentBooking.id), {
+                        status: 'in_progress',
+                        checkInTime: serverTimestamp(),
+                        beforePhotoUrl: photoUrl
+                    });
+
+                    // 3. Send Telegram
+                    const msg = `📸 <b>นักเรียนเช็คอินเข้าห้อง</b>\n<b>กลุ่ม:</b> ${currentBooking.projectName}\n<b>ชื่อ:</b> ${currentBooking.studentName}\nสภาพห้องก่อนเริ่มงาน ⬇️`;
+                    await sendTelegramPhoto(file, msg);
+
+                    toggleLoading(false);
+                    showToast('Check-in สำเร็จ!');
+                } catch(err) {
+                    toggleLoading(false);
+                    showError('เกิดข้อผิดพลาด: ' + err.message);
+                }
+            };
+            input.click(); // Open Camera
+        };
+
+        // 5.3 Check-out (Checklist + Capture After Photo)
+        window.handleCheckOut = () => {
+            Swal.fire({
+                title: 'ตรวจสอบก่อนคืนห้อง',
+                html: `
+                    <div class="text-left text-sm mt-2">
+                        <div class="flex items-center gap-2 mb-2 checklist-item">
+                            <input type="checkbox" id="chk1" class="w-4 h-4"> <label for="chk1">ล้างเครื่องแก้วเรียบร้อย</label>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2 checklist-item">
+                            <input type="checkbox" id="chk2" class="w-4 h-4"> <label for="chk2">เช็ดทำความสะอาดโต๊ะ</label>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2 checklist-item">
+                            <input type="checkbox" id="chk3" class="w-4 h-4"> <label for="chk3">ปิดไฟ พัดลม ก๊อกน้ำ</label>
+                        </div>
+                        <p class="text-xs text-red-500 mt-4">*ระบบจะเปิดกล้องเพื่อถ่ายรูปสภาพห้องและเครื่องแก้วหลังล้างเสร็จ</p>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-camera"></i> ถ่ายรูปยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+                preConfirm: () => {
+                    if(!document.getElementById('chk1').checked || !document.getElementById('chk2').checked || !document.getElementById('chk3').checked){
+                        Swal.showValidationMessage('กรุณาทำเครื่องหมายให้ครบทุกข้อ');
+                        return false;
+                    }
+                    return true;
+                }
+            }).then((result) => {
+                if(result.isConfirmed) {
+                    const input = document.getElementById('cameraInput');
+                    input.onchange = async (e) => {
+                        const file = e.target.files[0];
+                        if(!file) return;
+                        
+                        toggleLoading(true, 'กำลังบันทึกข้อมูลและส่งรายงาน...');
+                        try {
+                            // 1. Upload to Storage
+                            const storageRef = ref(storage, `lab_photos/${currentBooking.id}/after_${Date.now()}.jpg`);
+                            await uploadBytes(storageRef, file);
+                            const photoUrl = await getDownloadURL(storageRef);
+
+                            // 2. Update Firestore
+                            await updateDoc(doc(db, 'bookings', currentBooking.id), {
+                                status: 'completed',
+                                checkOutTime: serverTimestamp(),
+                                afterPhotoUrl: photoUrl
+                            });
+
+                            // 3. Send Telegram
+                            const msg = `✅ <b>เสร็จสิ้นการใช้งาน</b>\n<b>กลุ่ม:</b> ${currentBooking.projectName}\n<b>ชื่อ:</b> ${currentBooking.studentName}\nสถานะห้องหลังทำความสะอาด ⬇️`;
+                            await sendTelegramPhoto(file, msg);
+
+                            toggleLoading(false);
+                            Swal.fire('เรียบร้อย!', 'ขอบคุณที่รักษาความสะอาดครับ', 'success');
+                        } catch(err) {
+                            toggleLoading(false);
+                            showError('เกิดข้อผิดพลาด: ' + err.message);
+                        }
+                    };
+                    input.click(); // Open Camera
+                }
+            });
+        };
+
+        // ==========================================
+        // 6. TELEGRAM API HELPERS
+        // ==========================================
+        const sendTelegramText = async (text) => {
+            const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: text, parse_mode: 'HTML' })
+            });
+        };
+
+        const sendTelegramPhoto = async (photoBlob, caption) => {
+            const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`;
+            const formData = new FormData();
+            formData.append('chat_id', TELEGRAM_CHAT_ID);
+            formData.append('photo', photoBlob);
+            formData.append('caption', caption);
+            formData.append('parse_mode', 'HTML');
+            
+            await fetch(url, { method: 'POST', body: formData });
+        };
+
+
+        // ==========================================
+        // 7. ADMIN DASHBOARD (For Teacher)
+        // ==========================================
+        // คุณครูสามารถกดปุ่ม "ครูผู้สอน" ด้านบนขวาเพื่อเข้าสู่หน้า Admin 
+        document.getElementById('btnAdminToggle').addEventListener('click', () => {
+            showView('view-admin');
+            loadAdminData();
+        });
+
+        let unsubscribeAdmin = null;
+        const loadAdminData = () => {
+            toggleLoading(true);
+            const listEl = document.getElementById('adminList');
+            
+            if(unsubscribeAdmin) unsubscribeAdmin();
+
+            // ดึงข้อมูลที่ยังไม่เสร็จสิ้นมาแสดง
+            const q = query(collection(db, 'bookings'), where('status', 'in', ['pending', 'approved', 'in_progress']));
+            
+            unsubscribeAdmin = onSnapshot(q, (snapshot) => {
+                toggleLoading(false);
+                listEl.innerHTML = '';
+                
+                if(snapshot.empty) {
+                    listEl.innerHTML = '<div class="p-8 text-center text-gray-500">ไม่มีรายการคำขอในขณะนี้</div>';
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const id = docSnap.id;
+                    
+                    let statusBadge = '';
+                    let actionButtons = '';
+
+                    if(data.status === 'pending') {
+                        statusBadge = '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">รออนุมัติ</span>';
+                        actionButtons = `<button onclick="adminApprove('${id}', '${data.projectName}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">อนุมัติ</button>`;
+                    } else if(data.status === 'approved') {
+                        statusBadge = '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">อนุมัติแล้ว (รอเข้าใช้)</span>';
+                    } else if(data.status === 'in_progress') {
+                        statusBadge = '<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">กำลังใช้งาน</span>';
+                        actionButtons = `<a href="${data.beforePhotoUrl}" target="_blank" class="text-blue-500 text-sm underline"><i class="fa-solid fa-image"></i> รูปก่อนเข้า</a>`;
+                    }
+
+                    listEl.innerHTML += `
+                        <div class="p-4 hover:bg-gray-50 flex justify-between items-center">
+                            <div>
+                                <div class="font-bold text-gray-800">${data.projectName}</div>
+                                <div class="text-sm text-gray-500">${data.studentName} (${data.classLevel})</div>
+                                <div class="text-xs mt-1 text-gray-400">อุปกรณ์: ${data.equipment}</div>
+                                <div class="mt-2">${statusBadge}</div>
+                            </div>
+                            <div class="flex flex-col gap-2 items-end">
+                                ${actionButtons}
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        };
+
+        window.adminApprove = async (bookingId, projectName) => {
+            toggleLoading(true);
+            await updateDoc(doc(db, 'bookings', bookingId), { status: 'approved' });
+            
+            // แจ้งเตือนกลับไปที่ Telegram ว่าครูอนุมัติแล้ว
+            await sendTelegramText(`✅ <b>อนุมัติคำขอแล้ว</b>\nกลุ่ม: ${projectName}\nให้นักเรียนกดเช็คอินเพื่อเข้าห้องได้เลย`);
+            
+            toggleLoading(false);
+            showToast('อนุมัติสำเร็จ');
+        };
+
+    </script>
+</body>
+</html>
