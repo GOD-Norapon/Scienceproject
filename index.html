@@ -109,7 +109,7 @@
                         <div class="bg-white p-2 rounded-lg shadow-sm">
                             <i class="fa-solid fa-flask text-blue-800 text-xl"></i>
                         </div>
-                        <span class="font-bold text-lg tracking-wide hidden sm:block">Sci-Project Room</span>
+                        <span class="font-bold text-lg tracking-wide hidden sm:block">ระบบขอใช้ห้องโครงงาน</span>
                     </div>
                     <div class="flex items-center space-x-4">
                         <div class="text-right hidden sm:block">
@@ -199,7 +199,7 @@
                 </div>
 
                 <!-- View: My Session -->
-                <div id="view-session" class="view-section hidden max-w-3xl mx-auto space-y-6 animate-fade-in">
+                <div id="view-session" class="view-section hidden max-w-3xl mx-auto animate-fade-in">
                     <h2 class="text-3xl font-bold flex items-center mb-8"><i class="fa-solid fa-camera-retro mr-3 text-blue-600"></i> การใช้งานปัจจุบันของคุณ</h2>
                     <div id="session-container">
                         <!-- Content injected by JS -->
@@ -229,6 +229,11 @@
 
             </div>
         </div>
+        
+        <!-- Footer -->
+        <footer class="w-full text-center py-5 text-gray-400 text-sm mt-auto border-t border-gray-200 bg-gray-50">
+            <p>พัฒนาโดย lnwToon005</p>
+        </footer>
     </div>
 
     <!-- Firebase SDK (Modular) -->
@@ -284,7 +289,6 @@
         };
 
         // --- UTILITY: Fix Google Drive Image URLs ---
-        // ฟังก์ชันนี้จะแปลงลิงก์ Google Drive ให้แสดงผลในแท็ก <img> ได้โดยไม่ติด Error
         const getValidImageUrl = (url) => {
             if (!url) return '';
             if (url.includes('drive.google.com')) {
@@ -638,82 +642,86 @@
                 return;
             }
 
-            const log = myActiveLogs[0];
-            let statusBadge = '';
-            let contentHTML = '';
-            let borderColor = '';
+            let htmlContent = '';
 
-            if (log.status === 'pending') {
-                statusBadge = `<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold border border-yellow-200"><i class="fa-solid fa-hourglass-half mr-1"></i> รอครูอนุมัติ</span>`;
-                borderColor = 'border-yellow-200';
-                contentHTML = `
-                    <div class="text-center py-10 px-4">
-                        <i class="fa-solid fa-envelope-open-text text-5xl text-yellow-300 mb-4"></i>
-                        <h4 class="text-lg font-bold text-gray-800 mb-2">ส่งคำขอสำเร็จแล้ว!</h4>
-                        <p class="text-gray-500">ระบบได้ส่งข้อความแจ้งเตือนครูแล้ว กรุณารอผลการอนุมัติทางอีเมล หรือตรวจสอบที่หน้านี้อีกครั้ง</p>
-                    </div>`;
-            } 
-            else if (log.status === 'approved') {
-                statusBadge = `<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold border border-blue-200"><i class="fa-solid fa-circle-check mr-1"></i> อนุมัติแล้ว</span>`;
-                borderColor = 'border-blue-300 shadow-blue-100';
-                contentHTML = `
-                    <div class="bg-blue-50/50 p-8 rounded-xl text-center border border-blue-200 border-dashed">
-                        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm"><i class="fa-solid fa-1"></i></div>
-                        <h4 class="font-bold text-blue-900 text-xl mb-2">Check-in ถ่ายภาพก่อนเริ่มงาน</h4>
-                        <p class="text-blue-700 mb-6 max-w-sm mx-auto">โปรดถ่ายสภาพโต๊ะและอุปกรณ์ล่าสุด เพื่อยืนยันว่าคุณเข้ามาเห็นห้องในสภาพใด</p>
-                        <label class="cursor-pointer inline-flex items-center justify-center w-full sm:w-auto px-6 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg hover:shadow-xl" id="lbl-upload">
-                            <i class="fa-solid fa-camera mr-2 text-xl"></i> เปิดกล้องถ่ายภาพก่อนใช้
-                            <input type="file" accept="image/*" capture="environment" class="hidden" id="file-checkin" data-logid="${log.id}">
-                        </label>
-                    </div>`;
-            }
-            else if (log.status === 'active') {
-                statusBadge = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold border border-green-200 animate-pulse"><i class="fa-solid fa-fire mr-1"></i> กำลังใช้งานห้อง</span>`;
-                borderColor = 'border-green-300 shadow-green-100';
-                contentHTML = `
-                    <div class="space-y-8">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div>
-                                <p class="text-sm font-bold text-gray-500 mb-3 flex items-center"><i class="fa-solid fa-image mr-2"></i>ภาพก่อนใช้ (Check-in)</p>
-                                <img src="${getValidImageUrl(log.images.before_url)}" onclick="openLightbox('${getValidImageUrl(log.images.before_url)}')" class="w-full h-40 sm:h-48 object-cover rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onerror="this.src='https://placehold.co/300?text=Image+Error'" />
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold text-gray-500 mb-3 flex items-center"><i class="fa-solid fa-broom mr-2"></i>ภาพหลังทำความสะอาด</p>
-                                <div class="w-full h-40 sm:h-48 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">
-                                    <i class="fa-solid fa-hourglass-empty text-2xl mb-2 opacity-50"></i>
-                                    <span class="text-sm font-medium">รอการ Check-out</span>
+            // Loop to render ALL active requests for this user
+            myActiveLogs.forEach(log => {
+                let statusBadge = '';
+                let contentHTML = '';
+                let borderColor = '';
+
+                if (log.status === 'pending') {
+                    statusBadge = `<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold border border-yellow-200"><i class="fa-solid fa-hourglass-half mr-1"></i> รอครูอนุมัติ</span>`;
+                    borderColor = 'border-yellow-200';
+                    contentHTML = `
+                        <div class="text-center py-10 px-4">
+                            <i class="fa-solid fa-envelope-open-text text-5xl text-yellow-300 mb-4"></i>
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">ส่งคำขอสำเร็จแล้ว!</h4>
+                            <p class="text-gray-500">ระบบได้ส่งข้อความแจ้งเตือนครูแล้ว กรุณารอผลการอนุมัติทางอีเมล หรือตรวจสอบที่หน้านี้อีกครั้ง</p>
+                        </div>`;
+                } 
+                else if (log.status === 'approved') {
+                    statusBadge = `<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold border border-blue-200"><i class="fa-solid fa-circle-check mr-1"></i> อนุมัติแล้ว</span>`;
+                    borderColor = 'border-blue-300 shadow-blue-100';
+                    contentHTML = `
+                        <div class="bg-blue-50/50 p-8 rounded-xl text-center border border-blue-200 border-dashed">
+                            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm"><i class="fa-solid fa-1"></i></div>
+                            <h4 class="font-bold text-blue-900 text-xl mb-2">Check-in ถ่ายภาพก่อนเริ่มงาน</h4>
+                            <p class="text-blue-700 mb-6 max-w-sm mx-auto">โปรดถ่ายสภาพโต๊ะและอุปกรณ์ล่าสุด เพื่อยืนยันว่าคุณเข้ามาเห็นห้องในสภาพใด</p>
+                            <label class="cursor-pointer inline-flex items-center justify-center w-full sm:w-auto px-6 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg hover:shadow-xl" id="lbl-upload-checkin-${log.id}">
+                                <i class="fa-solid fa-camera mr-2 text-xl"></i> เปิดกล้องถ่ายภาพก่อนใช้
+                                <input type="file" accept="image/*" capture="environment" class="hidden" id="file-checkin-${log.id}" data-logid="${log.id}">
+                            </label>
+                        </div>`;
+                }
+                else if (log.status === 'active') {
+                    statusBadge = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold border border-green-200 animate-pulse"><i class="fa-solid fa-fire mr-1"></i> กำลังใช้งานห้อง</span>`;
+                    borderColor = 'border-green-300 shadow-green-100';
+                    contentHTML = `
+                        <div class="space-y-8">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-500 mb-3 flex items-center"><i class="fa-solid fa-image mr-2"></i>ภาพก่อนใช้ (Check-in)</p>
+                                    <img src="${getValidImageUrl(log.images.before_url)}" onclick="openLightbox('${getValidImageUrl(log.images.before_url)}')" class="w-full h-40 sm:h-48 object-cover rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onerror="this.src='https://placehold.co/300?text=Image+Error'" />
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-gray-500 mb-3 flex items-center"><i class="fa-solid fa-broom mr-2"></i>ภาพหลังทำความสะอาด</p>
+                                    <div class="w-full h-40 sm:h-48 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400">
+                                        <i class="fa-solid fa-hourglass-empty text-2xl mb-2 opacity-50"></i>
+                                        <span class="text-sm font-medium">รอการ Check-out</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl text-center border border-green-200 shadow-sm">
-                            <div class="w-16 h-16 bg-green-200 text-green-700 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm"><i class="fa-solid fa-2"></i></div>
-                            <h4 class="font-bold text-green-900 text-xl mb-2">Check-out ทำความสะอาด & ส่งงาน</h4>
-                            <p class="text-green-700 mb-6 max-w-sm mx-auto">เก็บอุปกรณ์และทำความสะอาดโต๊ะให้เรียบร้อย จากนั้นถ่ายภาพยืนยันเพื่อเสร็จสิ้นการใช้งาน</p>
-                            <label class="cursor-pointer inline-flex items-center justify-center w-full sm:w-auto px-6 py-3.5 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 focus:ring-4 focus:ring-green-300 transition-all shadow-lg hover:shadow-xl" id="lbl-upload">
-                                <i class="fa-solid fa-circle-check mr-2 text-xl"></i> ถ่ายภาพที่สะอาดแล้ว & ส่งงาน
-                                <input type="file" accept="image/*" capture="environment" class="hidden" id="file-checkout" data-logid="${log.id}">
-                            </label>
-                        </div>
-                    </div>`;
-            }
+                            <div class="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl text-center border border-green-200 shadow-sm">
+                                <div class="w-16 h-16 bg-green-200 text-green-700 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm"><i class="fa-solid fa-2"></i></div>
+                                <h4 class="font-bold text-green-900 text-xl mb-2">Check-out ทำความสะอาด & ส่งงาน</h4>
+                                <p class="text-green-700 mb-6 max-w-sm mx-auto">เก็บอุปกรณ์และทำความสะอาดโต๊ะให้เรียบร้อย จากนั้นถ่ายภาพยืนยันเพื่อเสร็จสิ้นการใช้งาน</p>
+                                <label class="cursor-pointer inline-flex items-center justify-center w-full sm:w-auto px-6 py-3.5 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 focus:ring-4 focus:ring-green-300 transition-all shadow-lg hover:shadow-xl" id="lbl-upload-checkout-${log.id}">
+                                    <i class="fa-solid fa-circle-check mr-2 text-xl"></i> ถ่ายภาพที่สะอาดแล้ว & ส่งงาน
+                                    <input type="file" accept="image/*" capture="environment" class="hidden" id="file-checkout-${log.id}" data-logid="${log.id}">
+                                </label>
+                            </div>
+                        </div>`;
+                }
 
-            container.innerHTML = `
-                <div class="bg-white rounded-2xl overflow-hidden shadow-md border ${borderColor} transition-colors duration-500">
-                    <div class="p-5 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h3 class="font-bold text-gray-900 text-lg mb-1">${log.project_name}</h3>
-                            <p class="text-sm text-gray-500"><i class="fa-regular fa-calendar-check mr-1.5"></i> ${log.date || '-'} | <i class="fa-regular fa-clock mx-1.5"></i> ${log.start_time || '-'} - ${log.end_time || '-'}</p>
+                htmlContent += `
+                    <div class="bg-white rounded-2xl overflow-hidden shadow-md border ${borderColor} transition-colors duration-500 mb-6 last:mb-0">
+                        <div class="p-5 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 class="font-bold text-gray-900 text-lg mb-1">${log.project_name}</h3>
+                                <p class="text-sm text-gray-500"><i class="fa-regular fa-calendar-check mr-1.5"></i> ${log.date || '-'} | <i class="fa-regular fa-clock mx-1.5"></i> ${log.start_time || '-'} - ${log.end_time || '-'}</p>
+                                <p class="text-sm text-blue-600 font-medium mt-1"><i class="fa-solid fa-flask-vial mr-1.5"></i> กิจกรรม: ${log.experiment || 'ไม่ได้ระบุ'}</p>
+                            </div>
+                            <div class="self-start sm:self-auto">${statusBadge}</div>
                         </div>
-                        <div class="self-start sm:self-auto">${statusBadge}</div>
+                        <div class="p-5 sm:p-8">${contentHTML}</div>
                     </div>
-                    <div class="p-5 sm:p-8">${contentHTML}</div>
-                </div>
-            `;
+                `;
+            });
 
-            // Attach event listeners for dynamic file inputs
-            const checkinInput = document.getElementById('file-checkin');
-            const checkoutInput = document.getElementById('file-checkout');
+            container.innerHTML = htmlContent;
 
+            // Define the upload handler function
             const handleUpload = async (e, isCheckIn) => {
                 const file = e.target.files[0];
                 if(!file) return;
@@ -723,12 +731,14 @@
                     return;
                 }
                 
-                const lbl = document.getElementById('lbl-upload');
+                const logId = e.target.dataset.logid;
+                const lblId = isCheckIn ? `lbl-upload-checkin-${logId}` : `lbl-upload-checkout-${logId}`;
+                const lbl = document.getElementById(lblId);
+
                 lbl.classList.add('opacity-50', 'pointer-events-none');
                 lbl.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังอัปโหลดไปยัง Google Drive...`;
 
                 try {
-                    const logId = e.target.dataset.logid;
                     const compressedBlob = await compressImage(file);
                     const base64Data = await blobToBase64(compressedBlob);
                     
@@ -762,8 +772,17 @@
                 }
             };
 
-            if(checkinInput) checkinInput.addEventListener('change', (e) => handleUpload(e, true));
-            if(checkoutInput) checkoutInput.addEventListener('change', (e) => handleUpload(e, false));
+            // Attach event listeners for dynamic file inputs for ALL items in the list
+            myActiveLogs.forEach(log => {
+                if (log.status === 'approved') {
+                    const checkinInput = document.getElementById(`file-checkin-${log.id}`);
+                    if(checkinInput) checkinInput.addEventListener('change', (e) => handleUpload(e, true));
+                }
+                if (log.status === 'active') {
+                    const checkoutInput = document.getElementById(`file-checkout-${log.id}`);
+                    if(checkoutInput) checkoutInput.addEventListener('change', (e) => handleUpload(e, false));
+                }
+            });
         };
 
         // --- ADMIN RENDERER ---
@@ -787,7 +806,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4 mt-2 text-sm text-gray-600">
                             <p><i class="fa-solid fa-calendar-day text-gray-400 mr-1.5 w-4"></i> <b>วันที่:</b> ${log.date || '-'}</p>
                             <p><i class="fa-solid fa-clock text-gray-400 mr-1.5 w-4"></i> <b>เวลา:</b> ${log.start_time || '-'} ถึง ${log.end_time || '-'}</p>
-                            <p class="sm:col-span-2"><i class="fa-solid fa-flask-vial text-gray-400 mr-1.5 w-4"></i> <b>กิจกรรม:</b> ${log.experiment || '-'}</p>
+                            <p class="sm:col-span-2"><i class="fa-solid fa-flask-vial text-blue-500 mr-1.5 w-4"></i> <b class="text-blue-700">การทดลอง/กิจกรรม:</b> <span class="text-gray-800">${log.experiment || '-'}</span></p>
                             <p class="sm:col-span-2"><i class="fa-solid fa-toolbox text-gray-400 mr-1.5 w-4"></i> <b>อุปกรณ์:</b> ${log.tools || '-'}</p>
                         </div>
                     </div>
