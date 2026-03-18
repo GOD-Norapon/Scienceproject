@@ -15,7 +15,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #2563eb; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .image-preview { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 1rem; }
     </style>
 </head>
 <body class="text-slate-800">
@@ -50,7 +49,7 @@
             <div class="bg-white p-10 rounded-3xl shadow-xl w-full max-w-md text-center border border-slate-100">
                 <div class="text-blue-600 text-6xl mb-6"><i class="fa-solid fa-microscope"></i></div>
                 <h1 class="text-3xl font-black mb-2">เข้าสู่ระบบ</h1>
-                <p class="text-slate-500 mb-8">ใช้ Gmail เพื่อเข้าใช้งานห้องปฏิบัติการ</p>
+                <p class="text-slate-500 mb-8 text-sm">ใช้ Gmail เพื่อเข้าใช้งานห้องปฏิบัติการ</p>
                 <button id="btnLoginGoogle" class="w-full bg-slate-900 text-white py-4 px-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 transition shadow-lg font-bold">
                     <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="G">
                     Login with Google
@@ -95,23 +94,20 @@
         <!-- 3. DASHBOARD VIEW -->
         <div id="view-dashboard" class="view-section">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <!-- Left: Profile & Lab Status -->
                 <div class="lg:col-span-4 space-y-6">
                     <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                         <div class="flex items-center gap-4 mb-4">
-                            <img id="userAvatar" class="w-14 h-14 rounded-2xl shadow-md border-2 border-white" src="" alt="">
+                            <img id="userAvatar" class="w-14 h-14 rounded-2xl shadow-md border-2 border-white bg-slate-100" src="" alt="">
                             <div>
-                                <h3 id="userName" class="font-bold text-slate-900 leading-none"></h3>
-                                <p id="userRoom" class="text-xs text-slate-400 mt-1"></p>
+                                <h3 id="userName" class="font-bold text-slate-900 leading-none">-</h3>
+                                <p id="userRoom" class="text-xs text-slate-400 mt-1">-</p>
                             </div>
                         </div>
                         <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
                             <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Current Project</p>
-                            <p id="userProject" class="font-bold text-blue-900 text-sm"></p>
+                            <p id="userProject" class="font-bold text-blue-900 text-sm">-</p>
                         </div>
                     </div>
-
-                    <!-- Lab Condition Card -->
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                         <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
                             <h4 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-camera mr-2 text-blue-500"></i> สภาพห้องล่าสุด</h4>
@@ -126,18 +122,13 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Right: Action Center -->
                 <div class="lg:col-span-8 space-y-6">
                     <div id="actionBox" class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 min-h-[300px] flex flex-col items-center justify-center">
                         <div class="loader"></div>
                     </div>
-                    
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                         <div class="p-4 border-b bg-slate-50 font-bold text-sm text-slate-700">กำลังใช้งานอยู่ขณะนี้</div>
-                        <div id="activeGroupsList" class="divide-y divide-slate-50">
-                            <!-- Injected Active Groups -->
-                        </div>
+                        <div id="activeGroupsList" class="divide-y divide-slate-50"></div>
                     </div>
                 </div>
             </div>
@@ -153,14 +144,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <p class="text-[10px] font-bold text-slate-400 uppercase">ผู้แจ้งใช้</p>
-                            <p id="reqDisplayName" class="font-bold text-slate-700"></p>
+                            <p id="reqDisplayName" class="font-bold text-slate-700">-</p>
                         </div>
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <p class="text-[10px] font-bold text-slate-400 uppercase">โครงงาน</p>
-                            <p id="reqDisplayProject" class="font-bold text-slate-700"></p>
+                            <p id="reqDisplayProject" class="font-bold text-slate-700">-</p>
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-3 uppercase">อุปกรณ์ที่ต้องการใช้</label>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -184,7 +174,6 @@
                             </label>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">ระยะเวลาโดยประมาณ</label>
@@ -195,7 +184,6 @@
                             <input type="text" id="reqMembers" placeholder="ระบุชื่อเพื่อนในกลุ่ม" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 outline-none focus:border-blue-500">
                         </div>
                     </div>
-
                     <div class="flex gap-4 pt-4">
                         <button type="button" onclick="showView('view-dashboard')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition">ยกเลิก</button>
                         <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition shadow-lg">ส่งคำขอจองห้อง</button>
@@ -211,33 +199,25 @@
                 <button onclick="showView('view-dashboard')" class="bg-slate-200 px-4 py-2 rounded-xl text-sm font-bold">กลับ</button>
             </div>
             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                <div id="adminRequestList" class="divide-y divide-slate-50">
-                    <!-- Injected Admin Requests -->
-                </div>
+                <div id="adminRequestList" class="divide-y divide-slate-50"></div>
             </div>
         </div>
 
     </main>
 
-    <!-- Overlay Loading -->
     <div id="globalLoading" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
-        <div class="loader mb-4 w-10 h-10"></div>
+        <div class="loader mb-4 w-10 h-10 border-t-blue-600"></div>
         <p class="text-blue-600 font-bold" id="globalLoadingText">กำลังประมวลผล...</p>
     </div>
 
-    <!-- Hidden Camera -->
     <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
 
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, onSnapshot, updateDoc, serverTimestamp, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, onSnapshot, updateDoc, serverTimestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-        // ==========================================
-        // CONFIG & CONSTANTS
-        // ==========================================
         const SUPER_ADMIN = "norapon@srisawat.ac.th";
         const firebaseConfig = {
             apiKey: "AIzaSyCcbi_mXodVvLwitoWO7QSyFPzLQOkJy0w",
@@ -261,50 +241,73 @@
         let userProfile = null;
         let activeLog = null;
 
-        // ==========================================
-        // UI CONTROL
-        // ==========================================
+        // UI CONTROL - แก้ไขให้ปิดตัวเก่าให้หมดก่อนแสดงตัวใหม่
         const showView = (id) => {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+            const views = document.querySelectorAll('.view-section');
+            views.forEach(el => el.classList.remove('active'));
+            
+            const targetView = document.getElementById(id);
+            if (targetView) targetView.classList.add('active');
+
+            // จัดการ Navbar
+            const nav = document.getElementById('navbar');
+            if (id === 'view-login') nav.classList.add('hidden');
+            else nav.classList.remove('hidden');
+
             window.scrollTo(0,0);
         };
 
         const toggleLoading = (show, text = 'กำลังโหลด...') => {
             const el = document.getElementById('globalLoading');
-            document.getElementById('globalLoadingText').innerText = text;
-            show ? el.classList.remove('hidden') : el.classList.add('hidden');
+            const txt = document.getElementById('globalLoadingText');
+            if (txt) txt.innerText = text;
+            if (show) el.classList.remove('hidden');
+            else el.classList.add('hidden');
         };
 
         const showToast = (title, icon = 'success') => Swal.fire({ toast: true, position: 'top-end', icon, title, showConfirmButton: false, timer: 2500 });
 
-        // ==========================================
         // AUTH & PROFILE
-        // ==========================================
-        document.getElementById('btnLoginGoogle').onclick = () => signInWithPopup(auth, provider).catch(err => Swal.fire('Error', err.message, 'error'));
-        document.getElementById('btnLogout').onclick = () => signOut(auth);
+        document.getElementById('btnLoginGoogle').onclick = () => {
+            toggleLoading(true, 'กำลังเปิดหน้าต่างล็อกอิน...');
+            signInWithPopup(auth, provider).catch(err => {
+                toggleLoading(false);
+                Swal.fire('Login Error', err.message, 'error');
+            });
+        };
+        
+        document.getElementById('btnLogout').onclick = () => {
+            signOut(auth).then(() => {
+                userProfile = null;
+                currentUser = null;
+                showView('view-login');
+            });
+        };
+
         document.getElementById('btnAdminView').onclick = () => showView('view-admin');
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 toggleLoading(true, 'กำลังเช็คข้อมูลโปรไฟล์...');
-                const userSnap = await getDoc(doc(db, 'users', user.uid));
-                
-                if (userSnap.exists()) {
-                    userProfile = userSnap.data();
-                    if (user.email === SUPER_ADMIN) document.getElementById('btnAdminView').classList.remove('hidden');
-                    loadDashboard();
-                } else {
+                try {
+                    const userSnap = await getDoc(doc(db, 'users', user.uid));
+                    if (userSnap.exists()) {
+                        userProfile = userSnap.data();
+                        const isAdmin = user.email === SUPER_ADMIN;
+                        document.getElementById('btnAdminView').classList.toggle('hidden', !isAdmin);
+                        loadDashboard();
+                    } else {
+                        toggleLoading(false);
+                        showView('view-setup');
+                    }
+                } catch (err) {
                     toggleLoading(false);
-                    showView('view-setup');
+                    Swal.fire('Database Error', 'ไม่สามารถเข้าถึงข้อมูลได้ โปรดรีเฟรชหน้าจอ', 'error');
                 }
             } else {
-                currentUser = null;
-                userProfile = null;
-                document.getElementById('navbar').classList.add('hidden');
-                showView('view-login');
                 toggleLoading(false);
+                showView('view-login');
             }
         });
 
@@ -325,20 +328,19 @@
                 userProfile = profile;
                 loadDashboard();
             } catch (err) {
-                Swal.fire('Error', err.message, 'error');
+                Swal.fire('Setup Error', err.message, 'error');
                 toggleLoading(false);
             }
         };
 
-        // ==========================================
         // DASHBOARD & MONITORING
-        // ==========================================
         const loadDashboard = () => {
-            document.getElementById('navbar').classList.remove('hidden');
-            document.getElementById('userName').innerText = userProfile.full_name;
-            document.getElementById('userRoom').innerText = `ห้อง ${userProfile.room}`;
-            document.getElementById('userProject').innerText = userProfile.default_project_name;
-            document.getElementById('userAvatar').src = currentUser.photoURL;
+            if (!userProfile) return;
+            
+            document.getElementById('userName').innerText = userProfile.full_name || 'ไม่ระบุชื่อ';
+            document.getElementById('userRoom').innerText = `ห้อง ${userProfile.room || '-'}`;
+            document.getElementById('userProject').innerText = userProfile.default_project_name || '-';
+            document.getElementById('userAvatar').src = currentUser.photoURL || '';
             
             showView('view-dashboard');
             syncLabPhoto();
@@ -346,12 +348,10 @@
             monitorUsageLogs();
         };
 
-        // แสดงสภาพห้องล่าสุด (Real-time)
         const syncLabPhoto = () => {
             const q = query(collection(db, 'usage_logs'), orderBy('timestamps.requested_at', 'desc'), limit(10));
             onSnapshot(q, (snapshot) => {
                 const allLogs = snapshot.docs.map(d => d.data());
-                // หาภาพล่าสุด ไม่ว่าจะเป็น Before หรือ After
                 let latestPhoto = null;
                 let latestTime = null;
 
@@ -368,14 +368,21 @@
                     }
                 }
 
+                const img = document.getElementById('labLastPhoto');
+                const empty = document.getElementById('labPhotoEmpty');
+                const time = document.getElementById('labPhotoTime');
+
                 if (latestPhoto) {
-                    const img = document.getElementById('labLastPhoto');
                     img.src = latestPhoto;
                     img.classList.remove('hidden');
-                    document.getElementById('labPhotoEmpty').classList.add('hidden');
-                    document.getElementById('labPhotoTime').innerText = 'อัปเดต: ' + latestTime?.toDate().toLocaleString('th-TH');
+                    empty.classList.add('hidden');
+                    time.innerText = 'อัปเดต: ' + (latestTime ? latestTime.toDate().toLocaleString('th-TH') : '-');
+                } else {
+                    img.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    time.innerText = 'ยังไม่มีข้อมูล';
                 }
-            });
+            }, (err) => console.warn('Snapshot error:', err));
         };
 
         const syncActiveGroups = () => {
@@ -393,7 +400,7 @@
                         <div class="p-4 flex items-center justify-between">
                             <div>
                                 <p class="font-bold text-slate-800 text-sm">${data.project_name}</p>
-                                <p class="text-[10px] text-slate-400">${data.user_name} | อุปกรณ์: ${data.equipment.join(', ')}</p>
+                                <p class="text-[10px] text-slate-400">${data.user_name} | อุปกรณ์: ${data.equipment?.join(', ') || '-'}</p>
                             </div>
                             <span class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
                         </div>
@@ -408,12 +415,19 @@
                 const active = snapshot.docs
                     .map(d => ({id: d.id, ...d.data()}))
                     .filter(log => log.status !== 'completed' && log.status !== 'cancelled')
-                    .sort((a,b) => b.timestamps.requested_at - a.timestamps.requested_at)[0];
+                    .sort((a,b) => {
+                        const timeA = a.timestamps?.requested_at?.toMillis() || 0;
+                        const timeB = b.timestamps?.requested_at?.toMillis() || 0;
+                        return timeB - timeA;
+                    })[0];
                 
                 activeLog = active || null;
                 renderActionCenter();
                 if (currentUser.email === SUPER_ADMIN) renderAdminRequests();
                 toggleLoading(false);
+            }, (err) => {
+                toggleLoading(false);
+                console.error(err);
             });
         };
 
@@ -424,8 +438,9 @@
                     <div class="bg-blue-50 p-5 rounded-full text-blue-600 mb-6"><i class="fa-solid fa-calendar-plus text-4xl"></i></div>
                     <h3 class="text-xl font-black mb-2">พร้อมขอใช้งานห้อง</h3>
                     <p class="text-slate-500 text-sm mb-8 text-center max-w-xs">คุณยังไม่มีรายการจองห้องในวันนี้ สามารถแจ้งครูเพื่อขอเข้าใช้งานได้ทันที</p>
-                    <button onclick="openRequestForm()" class="bg-blue-600 text-white font-black py-4 px-10 rounded-2xl shadow-lg hover:bg-blue-700 transition w-full">แจ้งขอใช้ห้องโครงงาน</button>
+                    <button id="btnOpenRequest" class="bg-blue-600 text-white font-black py-4 px-10 rounded-2xl shadow-lg hover:bg-blue-700 transition w-full">แจ้งขอใช้ห้องโครงงาน</button>
                 `;
+                document.getElementById('btnOpenRequest').onclick = openRequestForm;
             } else {
                 renderLogStatus(container, activeLog);
             }
@@ -438,17 +453,17 @@
             if (log.status === 'pending') {
                 statusHTML = `<span class="bg-amber-100 text-amber-700 px-4 py-1 rounded-full text-[10px] font-black uppercase">รออนุมัติ</span>`;
                 actionBtn = `<p class="text-slate-400 text-xs mt-4">ระบบส่งแจ้งเตือนไปที่ Telegram ครูแล้ว กรุณารอครูคลิกปุ่มอนุมัติ</p>
-                             <button onclick="cancelRequest('${log.id}')" class="text-red-500 text-xs mt-6 underline">ยกเลิกคำขอ</button>`;
+                             <button id="btnCancelReq" class="text-red-500 text-xs mt-6 underline">ยกเลิกคำขอ</button>`;
             } else if (log.status === 'approved') {
                 statusHTML = `<span class="bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full text-[10px] font-black uppercase">อนุมัติแล้ว</span>`;
                 actionBtn = `<h4 class="font-bold mt-4 mb-2">ถ่ายภาพสภาพห้องก่อนใช้</h4>
-                             <p class="text-slate-500 text-xs mb-6">กรุณาถ่ายรูปโต๊ะทำงานของคุณเพื่อยืนยันว่าห้องสะอาดก่อนเข้าใช้</p>
-                             <button onclick="handlePhoto('check-in', '${log.id}')" class="bg-emerald-600 text-white font-black py-4 px-10 rounded-2xl shadow-lg w-full"><i class="fa-solid fa-camera mr-2"></i> ถ่ายรูป Check-in</button>`;
+                             <p class="text-slate-500 text-xs mb-6 text-center">กรุณาถ่ายรูปโต๊ะทำงานของคุณเพื่อยืนยันว่าห้องสะอาดก่อนเข้าใช้</p>
+                             <button id="btnCheckIn" class="bg-emerald-600 text-white font-black py-4 px-10 rounded-2xl shadow-lg w-full"><i class="fa-solid fa-camera mr-2"></i> ถ่ายรูป Check-in</button>`;
             } else if (log.status === 'active') {
                 statusHTML = `<span class="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">กำลังใช้งาน</span>`;
                 actionBtn = `<h4 class="font-bold mt-4 mb-2">คืนห้องและทำความสะอาด</h4>
                              <p class="text-slate-500 text-xs mb-6 text-center">หลังเสร็จงาน กรุณาทำความสะอาด ล้างเครื่องแก้ว ปิดไฟ และถ่ายรูปสภาพห้องที่สะอาดแล้ว</p>
-                             <button onclick="handlePhoto('check-out', '${log.id}')" class="bg-slate-900 text-white font-black py-4 px-10 rounded-2xl shadow-lg w-full"><i class="fa-solid fa-broom mr-2"></i> ถ่ายรูปและส่งคืนห้อง</button>`;
+                             <button id="btnCheckOut" class="bg-slate-900 text-white font-black py-4 px-10 rounded-2xl shadow-lg w-full"><i class="fa-solid fa-broom mr-2"></i> ถ่ายรูปและส่งคืนห้อง</button>`;
             }
 
             container.innerHTML = `
@@ -459,18 +474,20 @@
                     </div>
                     <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100 mb-6">
                         <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">อุปกรณ์ที่ได้รับอนุญาต</p>
-                        <p class="text-sm font-bold text-slate-700">${log.equipment.join(', ')}</p>
+                        <p class="text-sm font-bold text-slate-700">${log.equipment?.join(', ') || '-'}</p>
                         <p class="text-[10px] font-bold text-slate-400 uppercase mt-4 mb-1">สมาชิกในกลุ่ม</p>
                         <p class="text-sm text-slate-600 font-medium">${log.members || 'ไม่มีสมาชิกเพิ่มเติม'}</p>
                     </div>
                     ${actionBtn}
                 </div>
             `;
+
+            if (document.getElementById('btnCancelReq')) document.getElementById('btnCancelReq').onclick = () => cancelRequest(log.id);
+            if (document.getElementById('btnCheckIn')) document.getElementById('btnCheckIn').onclick = () => handlePhoto('check-in', log.id);
+            if (document.getElementById('btnCheckOut')) document.getElementById('btnCheckOut').onclick = () => handlePhoto('check-out', log.id);
         };
 
-        // ==========================================
         // FORMS & REQUESTS
-        // ==========================================
         window.openRequestForm = () => {
             document.getElementById('reqDisplayName').innerText = userProfile.full_name;
             document.getElementById('reqDisplayProject').innerText = userProfile.default_project_name;
@@ -499,33 +516,34 @@
                         finished_at: null
                     }
                 };
-                const docRef = await addDoc(collection(db, 'usage_logs'), reqData);
+                await addDoc(collection(db, 'usage_logs'), reqData);
                 
-                // Telegram Notification
                 const msg = `🔬 <b>ขอใช้งานห้องโครงงาน</b>\n` +
                             `<b>กลุ่ม:</b> ${reqData.project_name}\n` +
                             `<b>นักเรียน:</b> ${reqData.user_name} (${reqData.user_room})\n` +
                             `<b>อุปกรณ์:</b> ${reqData.equipment.join(', ')}\n` +
                             `<b>เวลาประมาณ:</b> ${reqData.estimated_time}\n\n` +
-                            `🔗 <a href="${window.location.href}">คลิกเพื่อไปหน้า Admin</a>`;
+                            `🔗 <a href="${window.location.href}">คลิกเพื่อไปหน้า App</a>`;
                 
                 await sendTelegram(msg);
                 showToast('ส่งคำขอสำเร็จ');
                 loadDashboard();
             } catch (err) {
-                Swal.fire('Error', err.message, 'error');
+                Swal.fire('Request Error', err.message, 'error');
                 toggleLoading(false);
             }
         };
 
         window.cancelRequest = async (id) => {
             const res = await Swal.fire({ title: 'ยกเลิกคำขอ?', icon: 'warning', showCancelButton: true });
-            if (res.isConfirmed) await updateDoc(doc(db, 'usage_logs', id), { status: 'cancelled' });
+            if (res.isConfirmed) {
+                toggleLoading(true, 'กำลังยกเลิก...');
+                await updateDoc(doc(db, 'usage_logs', id), { status: 'cancelled' });
+                toggleLoading(false);
+            }
         };
 
-        // ==========================================
         // CAMERA & IMAGE COMPRESSION
-        // ==========================================
         window.handlePhoto = (type, logId) => {
             const input = document.getElementById('cameraInput');
             input.onchange = async (e) => {
@@ -544,19 +562,19 @@
                             'images.before_url': url,
                             'timestamps.started_at': serverTimestamp()
                         });
-                        await sendTelegram(`🚀 <b>${userProfile.project_name} เข้าใช้ห้องแล้ว</b>\nสภาพห้องเรียบร้อยดี`);
+                        await sendTelegram(`🚀 <b>${userProfile.default_project_name} เข้าใช้ห้องแล้ว</b>\nสภาพห้องเรียบร้อยดี`);
                     } else {
                         await updateDoc(doc(db, 'usage_logs', logId), {
                             status: 'completed',
                             'images.after_url': url,
                             'timestamps.finished_at': serverTimestamp()
                         });
-                        await sendTelegram(`🧹 <b>${userProfile.project_name} คืนห้องแล้ว</b>\nทำความสะอาดและตรวจสอบความเรียบร้อยแล้ว`);
+                        await sendTelegram(`🧹 <b>${userProfile.default_project_name} คืนห้องแล้ว</b>\nทำความสะอาดเรียบร้อยแล้ว`);
                     }
                     showToast('บันทึกรูปภาพสำเร็จ');
                     toggleLoading(false);
                 } catch (err) {
-                    Swal.fire('Error', err.message, 'error');
+                    Swal.fire('Upload Error', err.message, 'error');
                     toggleLoading(false);
                 }
             };
@@ -578,7 +596,7 @@
                         canvas.width = width; canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.6); // 60% quality
+                        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.6);
                     };
                     img.src = e.target.result;
                 };
@@ -586,13 +604,12 @@
             });
         };
 
-        // ==========================================
-        // TEACHER / ADMIN FUNCTION
-        // ==========================================
+        // ADMIN / TEACHER
         const renderAdminRequests = () => {
             const q = query(collection(db, 'usage_logs'), where('status', '==', 'pending'));
             onSnapshot(q, (snapshot) => {
                 const list = document.getElementById('adminRequestList');
+                if (!list) return;
                 list.innerHTML = '';
                 if (snapshot.empty) {
                     list.innerHTML = '<p class="p-10 text-center text-slate-400">ยังไม่มีคำขอใหม่</p>';
@@ -600,39 +617,47 @@
                 }
                 snapshot.forEach(d => {
                     const data = d.data();
-                    list.innerHTML += `
-                        <div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <h4 class="font-bold text-lg text-slate-800">${data.project_name}</h4>
-                                <p class="text-sm text-slate-500">${data.user_name} | ${data.user_room} | อุปกรณ์: ${data.equipment.join(', ')}</p>
-                                <p class="text-[10px] text-slate-400 mt-1 uppercase">ขอใช้งาน: ${data.estimated_time} ชม.</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="adminAction('${d.id}', 'rejected')" class="flex-1 md:flex-none px-6 py-2 rounded-xl border border-red-200 text-red-500 font-bold hover:bg-red-50 transition">ปฏิเสธ</button>
-                                <button onclick="adminAction('${d.id}', 'approved')" class="flex-1 md:flex-none px-6 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition">อนุมัติ</button>
-                            </div>
+                    const id = d.id;
+                    const item = document.createElement('div');
+                    item.className = "p-6 flex flex-col md:flex-row md:items-center justify-between gap-4";
+                    item.innerHTML = `
+                        <div>
+                            <h4 class="font-bold text-lg text-slate-800">${data.project_name}</h4>
+                            <p class="text-sm text-slate-500">${data.user_name} | ${data.user_room} | อุปกรณ์: ${data.equipment?.join(', ') || '-'}</p>
+                            <p class="text-[10px] text-slate-400 mt-1 uppercase">ขอใช้งาน: ${data.estimated_time} ชม.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="rej-${id}" class="flex-1 md:flex-none px-6 py-2 rounded-xl border border-red-200 text-red-500 font-bold hover:bg-red-50 transition">ปฏิเสธ</button>
+                            <button id="app-${id}" class="flex-1 md:flex-none px-6 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition">อนุมัติ</button>
                         </div>
                     `;
+                    list.appendChild(item);
+                    document.getElementById(`rej-${id}`).onclick = () => adminAction(id, 'rejected');
+                    document.getElementById(`app-${id}`).onclick = () => adminAction(id, 'approved');
                 });
             });
         };
 
         window.adminAction = async (id, status) => {
             toggleLoading(true, 'กำลังอัปเดตสถานะ...');
-            await updateDoc(doc(db, 'usage_logs', id), {
-                status: status,
-                'timestamps.approved_at': serverTimestamp()
-            });
-            toggleLoading(false);
-            showToast(status === 'approved' ? 'อนุมัติเรียบร้อย' : 'ปฏิเสธคำขอแล้ว');
+            try {
+                await updateDoc(doc(db, 'usage_logs', id), {
+                    status: status,
+                    'timestamps.approved_at': serverTimestamp()
+                });
+                toggleLoading(false);
+                showToast(status === 'approved' ? 'อนุมัติเรียบร้อย' : 'ปฏิเสธคำขอแล้ว');
+            } catch (err) {
+                toggleLoading(false);
+                Swal.fire('Admin Error', err.message, 'error');
+            }
         };
 
-        // ==========================================
-        // HELPERS
-        // ==========================================
         const sendTelegram = async (msg) => {
-            const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_CHAT}&text=${encodeURIComponent(msg)}&parse_mode=HTML`;
-            await fetch(url);
+            try {
+                const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_CHAT}&text=${encodeURIComponent(msg)}&parse_mode=HTML`;
+                await fetch(url);
+            } catch (e) { console.error('Telegram error:', e); }
         };
 
     </script>
