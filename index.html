@@ -188,7 +188,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular) - ไม่มีส่วนของ Storage แล้ว -->
+    <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -618,7 +618,15 @@
                         })
                     });
 
-                    const result = await response.json();
+                    // อัปเดตการตรวจจับ Error ตรงนี้ให้ละเอียดขึ้น
+                    const responseText = await response.text();
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (parseError) {
+                        console.error("RAW_RESPONSE:", responseText);
+                        throw new Error("ตั้งค่าสิทธิ์ Apps Script ไม่ถูกต้อง (อย่าลืมตั้งค่าสิทธิ์ให้ 'ทุกคน/Anyone' ตอน Deploy)");
+                    }
                     
                     if (result.status !== 'success') {
                         throw new Error(result.message || 'การเชื่อมต่อกับ Google Drive ล้มเหลว');
