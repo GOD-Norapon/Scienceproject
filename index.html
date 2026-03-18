@@ -278,8 +278,20 @@
             }, 3500);
         };
 
+        // --- UTILITY: Fix Google Drive Image URLs ---
+        // ฟังก์ชันนี้จะแปลงลิงก์ Google Drive ให้แสดงผลในแท็ก <img> ได้โดยไม่ติด Error
+        const getValidImageUrl = (url) => {
+            if (!url) return '';
+            if (url.includes('drive.google.com')) {
+                const match = url.match(/id=([a-zA-Z0-9_-]+)/);
+                if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            }
+            return url;
+        };
+
         // --- UTILITY: Lightbox ---
         window.openLightbox = (url) => {
+            if (!url) return;
             const lb = document.getElementById('lightbox');
             const lbImg = document.getElementById('lightbox-img');
             lbImg.src = url;
@@ -437,7 +449,7 @@
             } catch (error) {
                 showToast(error.message, 'error');
                 btn.disabled = false;
-                btn.innerText = 'บันลกข้อมูลและเข้าสู่ระบบ';
+                btn.innerText = 'บันทึกข้อมูลและเข้าสู่ระบบ';
             }
         });
 
@@ -570,7 +582,7 @@
             } else {
                 activeList.innerHTML = activeGroups.map(group => `
                     <div class="bg-white p-5 rounded-2xl border border-green-200 shadow hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex items-center space-x-5">
-                        <img src="${group.images?.before_url || ''}" onclick="openLightbox('${group.images?.before_url || ''}')" class="w-24 h-24 object-cover rounded-xl shadow border border-gray-100 cursor-pointer hover:opacity-90" onerror="this.src='https://placehold.co/100?text=Image+Error'" />
+                        <img src="${getValidImageUrl(group.images?.before_url)}" onclick="openLightbox('${getValidImageUrl(group.images?.before_url)}')" class="w-24 h-24 object-cover rounded-xl shadow border border-gray-100 cursor-pointer hover:opacity-90" onerror="this.src='https://placehold.co/100?text=Image+Error'" />
                         <div class="flex-1 min-w-0">
                             <h3 class="font-bold text-gray-900 truncate">${group.user_name} <span class="text-sm font-normal text-gray-500">(${group.user_room})</span></h3>
                             <p class="text-sm text-gray-600 truncate mt-0.5">${group.project_name}</p>
@@ -588,8 +600,8 @@
             } else {
                 recentList.innerHTML = recentCompleted.map(group => `
                     <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                        <div class="relative h-48 overflow-hidden cursor-pointer" onclick="openLightbox('${group.images.after_url}')">
-                            <img src="${group.images.after_url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 bg-gray-100" onerror="this.src='https://placehold.co/400x300?text=Image+Error'" />
+                        <div class="relative h-48 overflow-hidden cursor-pointer" onclick="openLightbox('${getValidImageUrl(group.images.after_url)}')">
+                            <img src="${getValidImageUrl(group.images.after_url)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 bg-gray-100" onerror="this.src='https://placehold.co/400x300?text=Image+Error'" />
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-80"></div>
                             <div class="absolute bottom-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm border border-green-400 flex items-center">
                                 <i class="fa-solid fa-check mr-1.5"></i> สะอาดแล้ว
@@ -655,7 +667,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div>
                                 <p class="text-sm font-bold text-gray-500 mb-3 flex items-center"><i class="fa-solid fa-image mr-2"></i>ภาพก่อนใช้ (Check-in)</p>
-                                <img src="${log.images.before_url}" onclick="openLightbox('${log.images.before_url}')" class="w-full h-40 sm:h-48 object-cover rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onerror="this.src='https://placehold.co/300?text=Image+Error'" />
+                                <img src="${getValidImageUrl(log.images.before_url)}" onclick="openLightbox('${getValidImageUrl(log.images.before_url)}')" class="w-full h-40 sm:h-48 object-cover rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onerror="this.src='https://placehold.co/300?text=Image+Error'" />
                             </div>
                             <div>
                                 <p class="text-sm font-bold text-gray-500 mb-3 flex items-center"><i class="fa-solid fa-broom mr-2"></i>ภาพหลังทำความสะอาด</p>
