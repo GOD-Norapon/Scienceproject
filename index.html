@@ -1,636 +1,675 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-  signOut, onAuthStateChanged 
-} from 'firebase/auth';
-import { 
-  getFirestore, collection, doc, setDoc, getDoc, updateDoc, 
-  onSnapshot, addDoc, serverTimestamp 
-} from 'firebase/firestore';
-import { 
-  getStorage, ref, uploadBytes, getDownloadURL 
-} from 'firebase/storage';
-import { 
-  Camera, CheckCircle, Clock, Wrench, User, LogOut, FileText, 
-  AlertCircle, ShieldCheck, Image as ImageIcon, Check, X
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจองห้องโครงงานวิทยาศาสตร์</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
 
-// --- CONFIGURATION ---
-const SUPER_ADMIN = "norapon@srisawat.ac.th";
-const TG_TOKEN = "8035118786:AAGvQMvbgpGRQxvPTHxA3gWh-LjPt7nhfYg";
-const TG_CHAT = "7742623919";
+    <!-- Custom Toast Notification -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCcbi_mXodVvLwitoWO7QSyFPzLQOkJy0w",
-  authDomain: "scienceproject-1cd9f.firebaseapp.com",
-  projectId: "scienceproject-1cd9f",
-  storageBucket: "scienceproject-1cd9f.firebasestorage.app",
-  messagingSenderId: "1077097234623",
-  appId: "1:1077097234623:web:5b2540c9721e5384b6860a",
-  measurementId: "G-M0CXTHLN1X"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-// --- UTILITY FUNCTIONS ---
-const sendTelegramMessage = async (text) => {
-  try {
-    const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: TG_CHAT, text: text, parse_mode: 'HTML' })
-    });
-  } catch (error) {
-    console.error("Error sending Telegram message:", error);
-  }
-};
-
-const compressImage = (file) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const MAX_WIDTH = 800; // Resize to max width 800px
-        const scaleSize = MAX_WIDTH / img.width;
-        canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scaleSize;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        canvas.toBlob((blob) => {
-          resolve(blob);
-        }, 'image/jpeg', 0.6); // 60% quality compression
-      };
-    };
-  });
-};
-
-// --- COMPONENTS ---
-
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState('dashboard');
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        // Fetch User Profile
-        const docRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfile(docSnap.data());
-        } else {
-          setProfile(null); // Needs setup
-        }
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
-
-  if (!user) return <AuthScreen />;
-  
-  if (user && !profile) return <ProfileSetup user={user} setProfile={setProfile} />;
-
-  const isAdmin = user.email === SUPER_ADMIN;
-
-  return (
-    <div className="min-h-screen bg-gray-100 font-sans">
-      {/* Navbar */}
-      <nav className="bg-blue-800 text-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="bg-white p-1.5 rounded-lg">
-                <Wrench className="h-6 w-6 text-blue-800" />
-              </div>
-              <span className="font-bold text-lg hidden sm:block">Sci-Project Room</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm opacity-90">{profile.full_name}</span>
-              <button onClick={() => signOut(auth)} className="p-2 hover:bg-blue-700 rounded-full transition"><LogOut size={18} /></button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
-        {/* Sidebar Menu */}
-        <div className="w-full md:w-64 flex-shrink-0 space-y-2">
-          <MenuButton icon={<Clock />} label="Dashboard (สถานะห้อง)" active={currentView === 'dashboard'} onClick={() => setCurrentView('dashboard')} />
-          <MenuButton icon={<FileText />} label="ขอใช้งานห้อง" active={currentView === 'request'} onClick={() => setCurrentView('request')} />
-          <MenuButton icon={<Camera />} label="ห้องของฉัน (Check-in/out)" active={currentView === 'session'} onClick={() => setCurrentView('session')} />
-          {isAdmin && (
-            <MenuButton icon={<ShieldCheck />} label="แอดมิน (อนุมัติ)" active={currentView === 'admin'} onClick={() => setCurrentView('admin')} className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200" />
-          )}
-        </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 min-h-[500px]">
-          {currentView === 'dashboard' && <Dashboard />}
-          {currentView === 'request' && <RequestForm profile={profile} user={user} switchTo={() => setCurrentView('session')} />}
-          {currentView === 'session' && <MySession user={user} />}
-          {currentView === 'admin' && isAdmin && <AdminPanel />}
-        </div>
-      </div>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="min-h-screen flex items-center justify-center bg-gray-50 z-50 fixed inset-0">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
     </div>
-  );
-}
 
-// --- SUB-COMPONENTS ---
-
-function MenuButton({ icon, label, active, onClick, className = '' }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition ${
-        active 
-          ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium' 
-          : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-      } ${className}`}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function AuthScreen() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-      }
-    } catch (err) {
-      setError(err.message.replace('Firebase: ', ''));
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-blue-100 flex items-center justify-center rounded-full">
-            <Wrench className="h-6 w-6 text-blue-600" />
-          </div>
-          <h2 className="mt-4 text-3xl font-extrabold text-gray-900">
-            ระบบจองห้องโครงงาน
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">โรงเรียนศรีสวัสดิ์วิทยาคาร</p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && <div className="bg-red-50 text-red-500 p-3 rounded text-sm">{error}</div>}
-          <div className="space-y-4">
-            <input
-              type="email" required placeholder="อีเมล (Email)"
-              className="appearance-none relative block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              value={email} onChange={e => setEmail(e.target.value)}
-            />
-            <input
-              type="password" required placeholder="รหัสผ่าน (Password)"
-              className="appearance-none relative block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              value={password} onChange={e => setPassword(e.target.value)}
-            />
-          </div>
-          <button type="submit" className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
-            {isLogin ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
-          </button>
-        </form>
-        <div className="text-center mt-4">
-          <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-blue-600 hover:underline">
-            {isLogin ? 'ยังไม่มีบัญชี? สมัครสมาชิกที่นี่' : 'มีบัญชีแล้ว? เข้าสู่ระบบ'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProfileSetup({ user, setProfile }) {
-  const [formData, setFormData] = useState({
-    full_name: '', room: '', default_project_name: '', advisor: ''
-  });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newProfile = { ...formData, email: user.email, uid: user.uid };
-    await setDoc(doc(db, 'users', user.uid), newProfile);
-    setProfile(newProfile);
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-lg w-full bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">ตั้งค่าข้อมูลส่วนตัวครั้งแรก</h2>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ชื่อ - นามสกุล</label>
-            <input type="text" required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" 
-              value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ชั้น / ห้อง (เช่น ม.4/1)</label>
-            <input type="text" required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" 
-              value={formData.room} onChange={e => setFormData({...formData, room: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ชื่อโครงงานหลัก</label>
-            <input type="text" required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" 
-              value={formData.default_project_name} onChange={e => setFormData({...formData, default_project_name: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ครูที่ปรึกษา</label>
-            <input type="text" required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" 
-              value={formData.advisor} onChange={e => setFormData({...formData, advisor: e.target.value})} />
-          </div>
-          <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none">
-            บันทึกข้อมูลและเข้าสู่ระบบ
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function RequestForm({ profile, user, switchTo }) {
-  const [tools, setTools] = useState([]);
-  const [members, setMembers] = useState('');
-  const [duration, setDuration] = useState('1 ชั่วโมง');
-  const [loading, setLoading] = useState(false);
-
-  const availableTools = ["หัวแร้ง/ตะกั่ว", "สว่าน", "เครื่องพิมพ์ 3 มิติ", "มัลติมิเตอร์", "อุปกรณ์ทำความสะอาด", "อื่นๆ"];
-
-  const handleToolToggle = (tool) => {
-    if (tools.includes(tool)) setTools(tools.filter(t => t !== tool));
-    else setTools([...tools, tool]);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const requestData = {
-        user_ref: user.uid,
-        user_name: profile.full_name,
-        user_room: profile.room,
-        project_name: profile.default_project_name,
-        status: 'pending',
-        tools: tools,
-        members: members,
-        duration: duration,
-        images: { before_url: null, after_url: null },
-        timestamps: { requested_at: serverTimestamp() }
-      };
-
-      await addDoc(collection(db, 'usage_logs'), requestData);
-      
-      // Send to Telegram
-      const msg = `📢 <b>คำขอใช้ห้องใหม่</b>\n\n👤 <b>นักเรียน:</b> ${profile.full_name} (${profile.room})\n🧪 <b>โครงงาน:</b> ${profile.default_project_name}\n⏱ <b>ระยะเวลา:</b> ${duration}\n🛠 <b>อุปกรณ์:</b> ${tools.join(', ') || '-'}\n👥 <b>สมาชิกเพิ่มเติม:</b> ${members || '-'}\n\n👉 <a href="https://scienceproject-1cd9f.web.app">กรุณาเข้าสู่ระบบเพื่ออนุมัติ</a>`;
-      await sendTelegramMessage(msg);
-      
-      alert("ส่งคำขอเรียบร้อยแล้ว กรุณารอครูอนุมัติ");
-      switchTo();
-    } catch (err) {
-      alert("เกิดข้อผิดพลาด: " + err.message);
-    }
-    setLoading(false);
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 flex items-center"><FileText className="mr-2 text-blue-600"/> แบบฟอร์มขอใช้ห้อง</h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-500 mb-1">ข้อมูลอัตโนมัติจากโปรไฟล์</p>
-          <div className="grid grid-cols-2 gap-4 font-medium text-gray-800">
-            <div>ผู้ขอ: {profile.full_name} ({profile.room})</div>
-            <div>โครงงาน: {profile.default_project_name}</div>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">อุปกรณ์ที่ต้องการใช้ (ถ้ามี)</label>
-          <div className="grid grid-cols-2 gap-2">
-            {availableTools.map(tool => (
-              <label key={tool} className="flex items-center space-x-2 bg-white border p-3 rounded-lg cursor-pointer hover:bg-blue-50">
-                <input type="checkbox" checked={tools.includes(tool)} onChange={() => handleToolToggle(tool)} className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" />
-                <span className="text-sm">{tool}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">สมาชิกเพิ่มเติม (คั่นด้วยลูกน้ำ)</label>
-          <input type="text" placeholder="เช่น นายเอ, ด.ช.บี" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" 
-            value={members} onChange={e => setMembers(e.target.value)} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">ระยะเวลาโดยประมาณ</label>
-          <select className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" value={duration} onChange={e => setDuration(e.target.value)}>
-            <option>30 นาที</option>
-            <option>1 ชั่วโมง</option>
-            <option>2 ชั่วโมง</option>
-            <option>3 ชั่วโมงขึ้นไป</option>
-          </select>
-        </div>
-
-        <button type="submit" disabled={loading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400">
-          {loading ? 'กำลังส่ง...' : 'ส่งคำขอให้ครูอนุมัติ'}
-        </button>
-      </form>
-    </div>
-  );
-}
-
-function MySession({ user }) {
-  const [logs, setLogs] = useState([]);
-  const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    // Note: Fetching all to filter in JS to avoid index requirement issues on new Firebase projects
-    const unsubscribe = onSnapshot(collection(db, 'usage_logs'), (snapshot) => {
-      const allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Filter for this user's active/pending sessions
-      const mySessions = allData
-        .filter(d => d.user_ref === user.uid && d.status !== 'completed')
-        .sort((a, b) => (b.timestamps?.requested_at?.toMillis() || 0) - (a.timestamps?.requested_at?.toMillis() || 0));
-      setLogs(mySessions);
-    });
-    return () => unsubscribe();
-  }, [user.uid]);
-
-  const handleImageUpload = async (file, logId, isCheckIn) => {
-    if (!file) return;
-    setUploading(true);
-    try {
-      const compressedBlob = await compressImage(file);
-      const filename = `proofs/${logId}_${isCheckIn ? 'before' : 'after'}_${Date.now()}.jpg`;
-      const storageRef = ref(storage, filename);
-      
-      await uploadBytes(storageRef, compressedBlob);
-      const downloadURL = await getDownloadURL(storageRef);
-
-      const logRef = doc(db, 'usage_logs', logId);
-      if (isCheckIn) {
-        await updateDoc(logRef, {
-          status: 'active',
-          'images.before_url': downloadURL,
-          'timestamps.started_at': serverTimestamp()
-        });
-        alert("Check-in สำเร็จ เริ่มใช้งานห้องได้!");
-      } else {
-        await updateDoc(logRef, {
-          status: 'completed',
-          'images.after_url': downloadURL,
-          'timestamps.finished_at': serverTimestamp()
-        });
-        alert("Check-out สำเร็จ ขอบคุณที่ทำความสะอาด!");
-      }
-    } catch (err) {
-      alert("อัปโหลดรูปภาพล้มเหลว: " + err.message);
-    }
-    setUploading(false);
-  };
-
-  if (logs.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-        <AlertCircle size={48} className="mb-4 text-gray-300" />
-        <p>คุณไม่มีรายการขอใช้งานที่กำลังดำเนินการ</p>
-      </div>
-    );
-  }
-
-  const log = logs[0]; // Show the most recent active/pending one
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold flex items-center"><Camera className="mr-2 text-blue-600"/> การใช้งานปัจจุบันของคุณ</h2>
-      
-      <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
-        <div className={`p-4 border-b ${
-          log.status === 'pending' ? 'bg-yellow-50 border-yellow-200' :
-          log.status === 'approved' ? 'bg-blue-50 border-blue-200' :
-          'bg-green-50 border-green-200'
-        }`}>
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-lg">สถานะ: 
-              {log.status === 'pending' && <span className="text-yellow-600 ml-2">⏳ รอครูอนุมัติ</span>}
-              {log.status === 'approved' && <span className="text-blue-600 ml-2">✅ อนุมัติแล้ว</span>}
-              {log.status === 'active' && <span className="text-green-600 ml-2">🔥 กำลังใช้งานห้อง</span>}
-            </h3>
-          </div>
-          <p className="text-sm mt-1">โครงงาน: {log.project_name}</p>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {log.status === 'pending' && (
-            <p className="text-gray-600 text-center py-4">ระบบได้แจ้งเตือนครูแล้ว กรุณารอการอนุมัติเพื่อถ่ายภาพ Check-in</p>
-          )}
-
-          {log.status === 'approved' && (
-            <div className="bg-blue-50 p-6 rounded-lg text-center border border-blue-100 border-dashed">
-              <h4 className="font-bold text-blue-800 mb-2">ขั้นตอนที่ 1: Check-in ถ่ายภาพก่อนใช้ห้อง</h4>
-              <p className="text-sm text-blue-600 mb-4">ถ่ายสภาพโต๊ะ/ห้องล่าสุด เพื่อยืนยันสภาพเริ่มต้น</p>
-              <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-                <Camera className="mr-2" size={20} />
-                {uploading ? 'กำลังอัปโหลด...' : 'เปิดกล้องถ่ายภาพก่อนใช้'}
-                <input type="file" accept="image/*" capture="environment" className="hidden" disabled={uploading}
-                  onChange={(e) => handleImageUpload(e.target.files[0], log.id, true)} />
-              </label>
-            </div>
-          )}
-
-          {log.status === 'active' && (
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <div className="w-1/2">
-                  <p className="text-sm font-medium text-gray-500 mb-2">ภาพก่อนใช้ห้อง (Check-in)</p>
-                  <img src={log.images.before_url} alt="Before" className="w-full h-32 object-cover rounded border" />
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="hidden min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+            <div class="text-center">
+                <div class="mx-auto h-12 w-12 bg-blue-100 flex items-center justify-center rounded-full">
+                    <i class="fa-solid fa-wrench text-blue-600 text-xl"></i>
                 </div>
-                <div className="w-1/2">
-                  <p className="text-sm font-medium text-gray-500 mb-2">ภาพหลังทำความสะอาด</p>
-                  <div className="w-full h-32 bg-gray-100 rounded border border-dashed flex items-center justify-center text-gray-400">
-                    รอการ Check-out
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-green-50 p-6 rounded-lg text-center border border-green-100 border-dashed">
-                <h4 className="font-bold text-green-800 mb-2">ขั้นตอนที่ 2: Check-out ส่งงาน</h4>
-                <p className="text-sm text-green-600 mb-4">ทำความสะอาดโต๊ะให้เรียบร้อยแล้วถ่ายภาพเพื่อยืนยัน</p>
-                <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition shadow-md">
-                  <CheckCircle className="mr-2" size={20} />
-                  {uploading ? 'กำลังอัปโหลด...' : 'ถ่ายภาพห้องที่สะอาดแล้ว & ส่งงาน'}
-                  <input type="file" accept="image/*" capture="environment" className="hidden" disabled={uploading}
-                    onChange={(e) => handleImageUpload(e.target.files[0], log.id, false)} />
-                </label>
-              </div>
+                <h2 class="mt-4 text-3xl font-extrabold text-gray-900">ระบบจองห้องโครงงาน</h2>
+                <p class="mt-2 text-sm text-gray-600">โรงเรียนศรีสวัสดิ์วิทยาคาร</p>
             </div>
-          )}
+            <form id="auth-form" class="mt-8 space-y-6">
+                <div id="auth-error" class="hidden bg-red-50 text-red-500 p-3 rounded text-sm"></div>
+                <div class="space-y-4">
+                    <input type="email" id="auth-email" required placeholder="อีเมล (Email)" class="appearance-none relative block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <input type="password" id="auth-password" required placeholder="รหัสผ่าน (Password)" class="appearance-none relative block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+            <div class="text-center mt-4">
+                <button id="toggle-auth-mode" class="text-sm text-blue-600 hover:underline">
+                    ยังไม่มีบัญชี? สมัครสมาชิกที่นี่
+                </button>
+            </div>
         </div>
-      </div>
     </div>
-  );
-}
 
-function Dashboard() {
-  const [logs, setLogs] = useState([]);
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'usage_logs'), (snapshot) => {
-      const allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      allData.sort((a, b) => (b.timestamps?.requested_at?.toMillis() || 0) - (a.timestamps?.requested_at?.toMillis() || 0));
-      setLogs(allData);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const activeGroups = logs.filter(l => l.status === 'active');
-  const recentCompleted = logs.filter(l => l.status === 'completed' && l.images?.after_url).slice(0, 3);
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center mb-4"><Clock className="mr-2 text-blue-600"/> กำลังใช้งานห้องขณะนี้</h2>
-        {activeGroups.length === 0 ? (
-          <div className="bg-gray-50 p-6 rounded-xl border text-center text-gray-500">
-            ขณะนี้ไม่มีผู้ใช้งานห้อง
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {activeGroups.map(group => (
-              <div key={group.id} className="bg-white p-4 rounded-xl border border-green-200 shadow-sm flex items-start space-x-4">
-                <img src={group.images?.before_url} alt="Check-in" className="w-20 h-20 object-cover rounded-lg shadow-sm border" />
+    <!-- Profile Setup Screen -->
+    <div id="profile-screen" class="hidden min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <div class="max-w-lg w-full bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">ตั้งค่าข้อมูลส่วนตัวครั้งแรก</h2>
+            <form id="profile-form" class="space-y-5">
                 <div>
-                  <h3 className="font-bold text-gray-800">{group.user_name} ({group.user_room})</h3>
-                  <p className="text-sm text-gray-600 truncate">{group.project_name}</p>
-                  <span className="inline-block mt-2 text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full animate-pulse">
-                    กำลังใช้งาน
-                  </span>
+                    <label class="block text-sm font-medium text-gray-700">ชื่อ - นามสกุล</label>
+                    <input type="text" id="prof-name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500">
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <h2 className="text-2xl font-bold flex items-center mb-4"><ImageIcon className="mr-2 text-blue-600"/> สภาพห้องล่าสุด (หลังจากใช้งานเสร็จ)</h2>
-        {recentCompleted.length === 0 ? (
-          <p className="text-sm text-gray-500">ยังไม่มีข้อมูลสภาพห้อง</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            {recentCompleted.map(group => (
-              <div key={group.id} className="bg-white rounded-xl border overflow-hidden shadow-sm">
-                <div className="relative h-40">
-                  <img src={group.images.after_url} className="w-full h-full object-cover" alt="Clean Room" />
-                  <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-                    ทำความสะอาดแล้ว
-                  </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ชั้น / ห้อง (เช่น ม.4/1)</label>
+                    <input type="text" id="prof-room" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500">
                 </div>
-                <div className="p-3">
-                  <p className="text-sm font-semibold truncate">{group.user_name}</p>
-                  <p className="text-xs text-gray-500 truncate">โครงงาน: {group.project_name}</p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ชื่อโครงงานหลัก</label>
+                    <input type="text" id="prof-project" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500">
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AdminPanel() {
-  const [logs, setLogs] = useState([]);
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'usage_logs'), (snapshot) => {
-      const allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Get pending and active to monitor
-      const requests = allData
-        .filter(l => l.status === 'pending')
-        .sort((a, b) => (b.timestamps?.requested_at?.toMillis() || 0) - (a.timestamps?.requested_at?.toMillis() || 0));
-      setLogs(requests);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleAction = async (id, action) => {
-    if (!window.confirm(`ยืนยันการ ${action === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'}?`)) return;
-    try {
-      await updateDoc(doc(db, 'usage_logs', id), {
-        status: action,
-        'timestamps.approved_at': serverTimestamp()
-      });
-      // Send Telegram notification about result
-      const log = logs.find(l => l.id === id);
-      const msg = `🔔 <b>แจ้งผลการขอใช้ห้อง</b>\n\nผู้ขอ: ${log.user_name}\nโครงงาน: ${log.project_name}\n\nสถานะ: <b>${action === 'approved' ? '✅ อนุมัติแล้ว (เตรียม Check-in)' : '❌ ไม่อนุมัติ'}</b>`;
-      await sendTelegramMessage(msg);
-    } catch (err) {
-      alert("Error: " + err.message);
-    }
-  };
-
-  return (
-    <div>
-      <h2 className="text-2xl font-bold flex items-center mb-6"><ShieldCheck className="mr-2 text-yellow-600"/> แผงควบคุมแอดมิน (คำขอรออนุมัติ)</h2>
-      
-      {logs.length === 0 ? (
-        <div className="text-center py-10 text-gray-500 border rounded-lg bg-gray-50">
-          ไม่มีคำขอที่รอการอนุมัติในขณะนี้
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ครูที่ปรึกษา</label>
+                    <input type="text" id="prof-advisor" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500">
+                </div>
+                <button type="submit" id="prof-submit-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md text-white bg-green-600 hover:bg-green-700">
+                    บันทึกข้อมูลและเข้าสู่ระบบ
+                </button>
+            </form>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {logs.map(log => (
-            <div key={log.id} className="bg-white p-5 rounded-xl border border-yellow-300 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h3 className="font-bold text-lg text-gray-900">{log.user_name} <span className="text-sm font-normal text-gray-500">({log.user_room})</span></h3>
-                <p className="text-sm text-gray-700 mt-1"><b>โครงงาน:</b> {log.project_name}</p>
-                <p className="text-sm text-gray-600 mt-1"><b>อุปกรณ์:</b> {log.tools?.join(', ') || 'ไม่มี'}</p>
-                <p className="text-sm text-gray-500 mt-1"><b>เวลาที่ขอ:</b> {log.duration}</p>
-              </div>
-              <div className="flex gap-2 w-full md:w-auto">
-                <button onClick={() => handleAction(log.id, 'rejected')} className="flex-1 md:flex-none flex justify-center items-center px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition">
-                  <X size={18} className="mr-1"/> ไม่อนุมัติ
-                </button>
-                <button onClick={() => handleAction(log.id, 'approved')} className="flex-1 md:flex-none flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                  <Check size={18} className="mr-1"/> อนุมัติการใช้
-                </button>
-              </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="main-screen" class="hidden min-h-screen bg-gray-100 font-sans">
+        <!-- Navbar -->
+        <nav class="bg-blue-800 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white p-1.5 rounded-lg">
+                            <i class="fa-solid fa-wrench text-blue-800 text-lg"></i>
+                        </div>
+                        <span class="font-bold text-lg hidden sm:block">Sci-Project Room</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="nav-user-name" class="text-sm opacity-90"></span>
+                        <button id="btn-logout" class="p-2 hover:bg-blue-700 rounded-full transition"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    </div>
+                </div>
             </div>
-          ))}
+        </nav>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
+            <!-- Sidebar Menu -->
+            <div class="w-full md:w-64 flex-shrink-0 space-y-2" id="sidebar-menu">
+                <button data-target="dashboard" class="menu-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition bg-blue-50 text-blue-700 border border-blue-200 font-medium">
+                    <i class="fa-solid fa-clock w-5 text-center"></i> <span>Dashboard (สถานะห้อง)</span>
+                </button>
+                <button data-target="request" class="menu-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition text-gray-600 hover:bg-gray-50 border border-transparent">
+                    <i class="fa-solid fa-file-text w-5 text-center"></i> <span>ขอใช้งานห้อง</span>
+                </button>
+                <button data-target="session" class="menu-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition text-gray-600 hover:bg-gray-50 border border-transparent">
+                    <i class="fa-solid fa-camera w-5 text-center"></i> <span>ห้องของฉัน (Check-in)</span>
+                </button>
+                <button data-target="admin" id="menu-btn-admin" class="menu-btn hidden w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-transparent">
+                    <i class="fa-solid fa-shield-halved w-5 text-center"></i> <span>แอดมิน (อนุมัติ)</span>
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 min-h-[500px]">
+                
+                <!-- View: Dashboard -->
+                <div id="view-dashboard" class="view-section space-y-8">
+                    <div>
+                        <h2 class="text-2xl font-bold flex items-center mb-4"><i class="fa-solid fa-clock mr-2 text-blue-600"></i> กำลังใช้งานห้องขณะนี้</h2>
+                        <div id="dash-active-list" class="grid gap-4 md:grid-cols-2"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold flex items-center mb-4"><i class="fa-solid fa-image mr-2 text-blue-600"></i> สภาพห้องล่าสุด (หลังจากใช้งานเสร็จ)</h2>
+                        <div id="dash-recent-list" class="grid gap-4 md:grid-cols-3"></div>
+                    </div>
+                </div>
+
+                <!-- View: Request Form -->
+                <div id="view-request" class="view-section hidden max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold mb-6 flex items-center"><i class="fa-solid fa-file-text mr-2 text-blue-600"></i> แบบฟอร์มขอใช้ห้อง</h2>
+                    <form id="request-form" class="space-y-6">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <p class="text-sm text-gray-500 mb-1">ข้อมูลอัตโนมัติจากโปรไฟล์</p>
+                            <div class="grid grid-cols-2 gap-4 font-medium text-gray-800">
+                                <div id="req-info-user"></div>
+                                <div id="req-info-project"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">อุปกรณ์ที่ต้องการใช้ (ถ้ามี)</label>
+                            <div class="grid grid-cols-2 gap-2" id="req-tools-container">
+                                <!-- Checkboxes injected by JS -->
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">สมาชิกเพิ่มเติม (คั่นด้วยลูกน้ำ)</label>
+                            <input type="text" id="req-members" placeholder="เช่น นายเอ, ด.ช.บี" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">ระยะเวลาโดยประมาณ</label>
+                            <select id="req-duration" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                                <option>30 นาที</option>
+                                <option selected>1 ชั่วโมง</option>
+                                <option>2 ชั่วโมง</option>
+                                <option>3 ชั่วโมงขึ้นไป</option>
+                            </select>
+                        </div>
+                        <button type="submit" id="req-submit-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400">
+                            ส่งคำขอให้ครูอนุมัติ
+                        </button>
+                    </form>
+                </div>
+
+                <!-- View: My Session -->
+                <div id="view-session" class="view-section hidden max-w-2xl mx-auto space-y-6">
+                    <h2 class="text-2xl font-bold flex items-center"><i class="fa-solid fa-camera mr-2 text-blue-600"></i> การใช้งานปัจจุบันของคุณ</h2>
+                    <div id="session-container">
+                        <!-- Content injected by JS -->
+                    </div>
+                </div>
+
+                <!-- View: Admin Panel -->
+                <div id="view-admin" class="view-section hidden">
+                    <h2 class="text-2xl font-bold flex items-center mb-6"><i class="fa-solid fa-shield-halved mr-2 text-yellow-600"></i> แผงควบคุมแอดมิน (คำขอรออนุมัติ)</h2>
+                    <div id="admin-list" class="space-y-4">
+                        <!-- Content injected by JS -->
+                    </div>
+                </div>
+
+            </div>
         </div>
-      )}
     </div>
-  );
-}
+
+    <!-- Firebase SDK (Modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // --- CONFIGURATION ---
+        const SUPER_ADMIN = "norapon@srisawat.ac.th";
+        const TG_TOKEN = "8035118786:AAGvQMvbgpGRQxvPTHxA3gWh-LjPt7nhfYg";
+        const TG_CHAT = "7742623919";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcbi_mXodVvLwitoWO7QSyFPzLQOkJy0w",
+            authDomain: "scienceproject-1cd9f.firebaseapp.com",
+            projectId: "scienceproject-1cd9f",
+            storageBucket: "scienceproject-1cd9f.firebasestorage.app",
+            messagingSenderId: "1077097234623",
+            appId: "1:1077097234623:web:5b2540c9721e5384b6860a",
+            measurementId: "G-M0CXTHLN1X"
+        };
+
+        // --- INITIALIZE ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // --- STATE ---
+        let currentUser = null;
+        let userProfile = null;
+        let allLogs = [];
+        let isLoginMode = true;
+
+        // --- UTILITY: Toast Notification ---
+        window.showToast = (msg, type = 'info') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-gray-800';
+            toast.className = `${bgColor} text-white px-4 py-3 rounded shadow-lg transition-opacity duration-300 opacity-0`;
+            toast.innerHTML = msg;
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.remove('opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // --- UTILITY: Telegram ---
+        const sendTelegramMessage = async (text) => {
+            try {
+                const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: TG_CHAT, text: text, parse_mode: 'HTML' })
+                });
+            } catch (error) {
+                console.error("Telegram error:", error);
+            }
+        };
+
+        // --- UTILITY: Image Compression ---
+        const compressImage = (file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const MAX_WIDTH = 800;
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        canvas.toBlob((blob) => { resolve(blob); }, 'image/jpeg', 0.6);
+                    };
+                };
+            });
+        };
+
+        // --- ROUTING & VIEW MANAGEMENT ---
+        const switchScreen = (screenId) => {
+            ['loading-screen', 'auth-screen', 'profile-screen', 'main-screen'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        };
+
+        const switchView = (target) => {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${target}`).classList.remove('hidden');
+
+            document.querySelectorAll('.menu-btn').forEach(btn => {
+                if(btn.dataset.target === target) {
+                    btn.className = "menu-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition bg-blue-50 text-blue-700 border border-blue-200 font-medium";
+                } else {
+                    btn.className = `menu-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition text-gray-600 hover:bg-gray-50 border border-transparent ${btn.id === 'menu-btn-admin' && currentUser?.email !== SUPER_ADMIN ? 'hidden' : ''}`;
+                }
+            });
+        };
+
+        // Sidebar Event Listeners
+        document.querySelectorAll('.menu-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => switchView(e.currentTarget.dataset.target));
+        });
+
+        // --- AUTH LOGIC ---
+        document.getElementById('toggle-auth-mode').addEventListener('click', (e) => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-submit-btn').innerText = isLoginMode ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก';
+            e.target.innerText = isLoginMode ? 'ยังไม่มีบัญชี? สมัครสมาชิกที่นี่' : 'มีบัญชีแล้ว? เข้าสู่ระบบ';
+            document.getElementById('auth-error').classList.add('hidden');
+        });
+
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errorDiv = document.getElementById('auth-error');
+            const btn = document.getElementById('auth-submit-btn');
+            
+            errorDiv.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerText = 'กำลังดำเนินการ...';
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+            } catch (err) {
+                errorDiv.innerText = err.message.replace('Firebase: ', '');
+                errorDiv.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = isLoginMode ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก';
+            }
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+        // --- PROFILE LOGIC ---
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('prof-submit-btn');
+            btn.disabled = true;
+            btn.innerText = 'กำลังบันทึก...';
+
+            const newProfile = {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                full_name: document.getElementById('prof-name').value,
+                room: document.getElementById('prof-room').value,
+                default_project_name: document.getElementById('prof-project').value,
+                advisor: document.getElementById('prof-advisor').value
+            };
+
+            try {
+                await setDoc(doc(db, 'users', currentUser.uid), newProfile);
+                userProfile = newProfile;
+                initMainApp();
+            } catch (error) {
+                showToast(error.message, 'error');
+                btn.disabled = false;
+                btn.innerText = 'บันทึกข้อมูลและเข้าสู่ระบบ';
+            }
+        });
+
+        // --- REAL-TIME LISTENERS & RENDERING ---
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            if (user) {
+                // Fetch Profile
+                const docSnap = await getDoc(doc(db, 'users', user.uid));
+                if (docSnap.exists()) {
+                    userProfile = docSnap.data();
+                    initMainApp();
+                } else {
+                    switchScreen('profile-screen');
+                }
+            } else {
+                userProfile = null;
+                switchScreen('auth-screen');
+            }
+        });
+
+        let unsubscribeLogs = null;
+
+        const initMainApp = () => {
+            switchScreen('main-screen');
+            document.getElementById('nav-user-name').innerText = userProfile.full_name;
+            
+            if (currentUser.email === SUPER_ADMIN) {
+                document.getElementById('menu-btn-admin').classList.remove('hidden');
+            }
+
+            // Init Request Form Data
+            document.getElementById('req-info-user').innerText = `ผู้ขอ: ${userProfile.full_name} (${userProfile.room})`;
+            document.getElementById('req-info-project').innerText = `โครงงาน: ${userProfile.default_project_name}`;
+            renderToolCheckboxes();
+
+            // Setup Realtime Listener
+            if (unsubscribeLogs) unsubscribeLogs();
+            unsubscribeLogs = onSnapshot(collection(db, 'usage_logs'), (snapshot) => {
+                allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allLogs.sort((a, b) => (b.timestamps?.requested_at?.toMillis() || 0) - (a.timestamps?.requested_at?.toMillis() || 0));
+                
+                renderDashboard();
+                renderSession();
+                if(currentUser.email === SUPER_ADMIN) renderAdmin();
+            });
+            
+            switchView('dashboard');
+        };
+
+        // --- REQUEST FORM LOGIC ---
+        const availableTools = ["หัวแร้ง/ตะกั่ว", "สว่าน", "เครื่องพิมพ์ 3 มิติ", "มัลติมิเตอร์", "อุปกรณ์ทำความสะอาด", "อื่นๆ"];
+        
+        const renderToolCheckboxes = () => {
+            const container = document.getElementById('req-tools-container');
+            container.innerHTML = availableTools.map(tool => `
+                <label class="flex items-center space-x-2 bg-white border p-3 rounded-lg cursor-pointer hover:bg-blue-50">
+                    <input type="checkbox" value="${tool}" class="tool-checkbox rounded text-blue-600 w-4 h-4">
+                    <span class="text-sm">${tool}</span>
+                </label>
+            `).join('');
+        };
+
+        document.getElementById('request-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('req-submit-btn');
+            btn.disabled = true;
+            btn.innerText = 'กำลังส่ง...';
+
+            const selectedTools = Array.from(document.querySelectorAll('.tool-checkbox:checked')).map(cb => cb.value);
+            const members = document.getElementById('req-members').value;
+            const duration = document.getElementById('req-duration').value;
+
+            try {
+                await addDoc(collection(db, 'usage_logs'), {
+                    user_ref: currentUser.uid,
+                    user_name: userProfile.full_name,
+                    user_room: userProfile.room,
+                    project_name: userProfile.default_project_name,
+                    status: 'pending',
+                    tools: selectedTools,
+                    members: members,
+                    duration: duration,
+                    images: { before_url: null, after_url: null },
+                    timestamps: { requested_at: serverTimestamp() }
+                });
+
+                const msg = `📢 <b>คำขอใช้ห้องใหม่</b>\n\n👤 <b>นักเรียน:</b> ${userProfile.full_name} (${userProfile.room})\n🧪 <b>โครงงาน:</b> ${userProfile.default_project_name}\n⏱ <b>ระยะเวลา:</b> ${duration}\n🛠 <b>อุปกรณ์:</b> ${selectedTools.join(', ') || '-'}\n👥 <b>สมาชิกเพิ่มเติม:</b> ${members || '-'}\n\n👉 <a href="https://scienceproject-1cd9f.web.app">กรุณาเข้าสู่ระบบเพื่ออนุมัติ</a>`;
+                await sendTelegramMessage(msg);
+
+                showToast('ส่งคำขอเรียบร้อยแล้ว กรุณารอครูอนุมัติ', 'success');
+                
+                // Reset form
+                document.getElementById('req-members').value = '';
+                document.querySelectorAll('.tool-checkbox').forEach(cb => cb.checked = false);
+                switchView('session');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+            btn.disabled = false;
+            btn.innerText = 'ส่งคำขอให้ครูอนุมัติ';
+        });
+
+        // --- DASHBOARD RENDERER ---
+        const renderDashboard = () => {
+            const activeList = document.getElementById('dash-active-list');
+            const recentList = document.getElementById('dash-recent-list');
+
+            const activeGroups = allLogs.filter(l => l.status === 'active');
+            const recentCompleted = allLogs.filter(l => l.status === 'completed' && l.images?.after_url).slice(0, 3);
+
+            if (activeGroups.length === 0) {
+                activeList.innerHTML = `<div class="bg-gray-50 p-6 rounded-xl border text-center text-gray-500 col-span-full">ขณะนี้ไม่มีผู้ใช้งานห้อง</div>`;
+            } else {
+                activeList.innerHTML = activeGroups.map(group => `
+                    <div class="bg-white p-4 rounded-xl border border-green-200 shadow-sm flex items-start space-x-4">
+                        <img src="${group.images?.before_url || ''}" class="w-20 h-20 object-cover rounded-lg shadow-sm border bg-gray-100" />
+                        <div>
+                            <h3 class="font-bold text-gray-800">${group.user_name} (${group.user_room})</h3>
+                            <p class="text-sm text-gray-600 truncate max-w-[200px]">${group.project_name}</p>
+                            <span class="inline-block mt-2 text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full animate-pulse">
+                                กำลังใช้งาน
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            if (recentCompleted.length === 0) {
+                recentList.innerHTML = `<p class="text-sm text-gray-500 col-span-full">ยังไม่มีข้อมูลสภาพห้อง</p>`;
+            } else {
+                recentList.innerHTML = recentCompleted.map(group => `
+                    <div class="bg-white rounded-xl border overflow-hidden shadow-sm">
+                        <div class="relative h-40">
+                            <img src="${group.images.after_url}" class="w-full h-full object-cover bg-gray-100" />
+                            <div class="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">ทำความสะอาดแล้ว</div>
+                        </div>
+                        <div class="p-3">
+                            <p class="text-sm font-semibold truncate">${group.user_name}</p>
+                            <p class="text-xs text-gray-500 truncate">โครงงาน: ${group.project_name}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        };
+
+        // --- SESSION RENDERER ---
+        const renderSession = () => {
+            const container = document.getElementById('session-container');
+            const myActiveLogs = allLogs.filter(d => d.user_ref === currentUser.uid && d.status !== 'completed');
+
+            if (myActiveLogs.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-64 text-gray-500">
+                        <i class="fa-solid fa-circle-exclamation text-5xl mb-4 text-gray-300"></i>
+                        <p>คุณไม่มีรายการขอใช้งานที่กำลังดำเนินการ</p>
+                    </div>`;
+                return;
+            }
+
+            const log = myActiveLogs[0];
+            let statusHTML = '';
+            let contentHTML = '';
+
+            if (log.status === 'pending') {
+                statusHTML = `<span class="text-yellow-600 ml-2">⏳ รอครูอนุมัติ</span>`;
+                contentHTML = `<p class="text-gray-600 text-center py-4">ระบบได้แจ้งเตือนครูแล้ว กรุณารอการอนุมัติเพื่อถ่ายภาพ Check-in</p>`;
+            } 
+            else if (log.status === 'approved') {
+                statusHTML = `<span class="text-blue-600 ml-2">✅ อนุมัติแล้ว</span>`;
+                contentHTML = `
+                    <div class="bg-blue-50 p-6 rounded-lg text-center border border-blue-100 border-dashed">
+                        <h4 class="font-bold text-blue-800 mb-2">ขั้นตอนที่ 1: Check-in ถ่ายภาพก่อนใช้ห้อง</h4>
+                        <p class="text-sm text-blue-600 mb-4">ถ่ายสภาพโต๊ะ/ห้องล่าสุด เพื่อยืนยันสภาพเริ่มต้น</p>
+                        <label class="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition" id="lbl-upload">
+                            <i class="fa-solid fa-camera mr-2"></i> เปิดกล้องถ่ายภาพก่อนใช้
+                            <input type="file" accept="image/*" capture="environment" class="hidden" id="file-checkin" data-logid="${log.id}">
+                        </label>
+                    </div>`;
+            }
+            else if (log.status === 'active') {
+                statusHTML = `<span class="text-green-600 ml-2">🔥 กำลังใช้งานห้อง</span>`;
+                contentHTML = `
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="w-1/2">
+                                <p class="text-sm font-medium text-gray-500 mb-2">ภาพก่อนใช้ห้อง (Check-in)</p>
+                                <img src="${log.images.before_url}" class="w-full h-32 object-cover rounded border" />
+                            </div>
+                            <div class="w-1/2">
+                                <p class="text-sm font-medium text-gray-500 mb-2">ภาพหลังทำความสะอาด</p>
+                                <div class="w-full h-32 bg-gray-100 rounded border border-dashed flex items-center justify-center text-gray-400 text-sm">รอ Check-out</div>
+                            </div>
+                        </div>
+                        <div class="bg-green-50 p-6 rounded-lg text-center border border-green-100 border-dashed">
+                            <h4 class="font-bold text-green-800 mb-2">ขั้นตอนที่ 2: Check-out ส่งงาน</h4>
+                            <p class="text-sm text-green-600 mb-4">ทำความสะอาดโต๊ะให้เรียบร้อยแล้วถ่ายภาพเพื่อยืนยัน</p>
+                            <label class="cursor-pointer inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition shadow-md" id="lbl-upload">
+                                <i class="fa-solid fa-circle-check mr-2"></i> ถ่ายภาพห้องที่สะอาดแล้ว & ส่งงาน
+                                <input type="file" accept="image/*" capture="environment" class="hidden" id="file-checkout" data-logid="${log.id}">
+                            </label>
+                        </div>
+                    </div>`;
+            }
+
+            container.innerHTML = `
+                <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
+                    <div class="p-4 border-b ${log.status === 'pending' ? 'bg-yellow-50 border-yellow-200' : log.status === 'approved' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}">
+                        <h3 class="font-bold text-lg flex items-center">สถานะ: ${statusHTML}</h3>
+                        <p class="text-sm mt-1">โครงงาน: ${log.project_name}</p>
+                    </div>
+                    <div class="p-6 space-y-6">${contentHTML}</div>
+                </div>
+            `;
+
+            // Attach event listeners for dynamic file inputs
+            const checkinInput = document.getElementById('file-checkin');
+            const checkoutInput = document.getElementById('file-checkout');
+
+            const handleUpload = async (e, isCheckIn) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                
+                const lbl = document.getElementById('lbl-upload');
+                lbl.classList.add('opacity-50', 'pointer-events-none');
+                lbl.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังอัปโหลด...`;
+
+                try {
+                    const logId = e.target.dataset.logid;
+                    const compressedBlob = await compressImage(file);
+                    const filename = `proofs/${logId}_${isCheckIn ? 'before' : 'after'}_${Date.now()}.jpg`;
+                    const storageRef = ref(storage, filename);
+                    
+                    await uploadBytes(storageRef, compressedBlob);
+                    const downloadURL = await getDownloadURL(storageRef);
+
+                    const logRef = doc(db, 'usage_logs', logId);
+                    if (isCheckIn) {
+                        await updateDoc(logRef, {
+                            status: 'active',
+                            'images.before_url': downloadURL,
+                            'timestamps.started_at': serverTimestamp()
+                        });
+                        showToast("Check-in สำเร็จ เริ่มใช้งานห้องได้!", 'success');
+                    } else {
+                        await updateDoc(logRef, {
+                            status: 'completed',
+                            'images.after_url': downloadURL,
+                            'timestamps.finished_at': serverTimestamp()
+                        });
+                        showToast("Check-out สำเร็จ ขอบคุณที่ทำความสะอาด!", 'success');
+                    }
+                } catch (error) {
+                    showToast("อัปโหลดล้มเหลว: " + error.message, 'error');
+                    lbl.classList.remove('opacity-50', 'pointer-events-none');
+                    lbl.innerHTML = isCheckIn ? '<i class="fa-solid fa-camera mr-2"></i> เปิดกล้องถ่ายภาพก่อนใช้' : '<i class="fa-solid fa-circle-check mr-2"></i> ถ่ายภาพห้องที่สะอาดแล้ว & ส่งงาน';
+                }
+            };
+
+            if(checkinInput) checkinInput.addEventListener('change', (e) => handleUpload(e, true));
+            if(checkoutInput) checkoutInput.addEventListener('change', (e) => handleUpload(e, false));
+        };
+
+        // --- ADMIN RENDERER ---
+        const renderAdmin = () => {
+            const container = document.getElementById('admin-list');
+            const pendingReqs = allLogs.filter(l => l.status === 'pending');
+
+            if (pendingReqs.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 text-gray-500 border rounded-lg bg-gray-50">ไม่มีคำขอที่รอการอนุมัติในขณะนี้</div>`;
+                return;
+            }
+
+            container.innerHTML = pendingReqs.map(log => `
+                <div class="bg-white p-5 rounded-xl border border-yellow-300 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-900">${log.user_name} <span class="text-sm font-normal text-gray-500">(${log.user_room})</span></h3>
+                        <p class="text-sm text-gray-700 mt-1"><b>โครงงาน:</b> ${log.project_name}</p>
+                        <p class="text-sm text-gray-600 mt-1"><b>อุปกรณ์:</b> ${log.tools?.join(', ') || 'ไม่มี'}</p>
+                        <p class="text-sm text-gray-500 mt-1"><b>เวลาที่ขอ:</b> ${log.duration}</p>
+                    </div>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <button onclick="handleAdminAction('${log.id}', 'rejected', '${log.user_name}', '${log.project_name}')" class="flex-1 md:flex-none flex justify-center items-center px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition">
+                            <i class="fa-solid fa-xmark mr-1"></i> ไม่อนุมัติ
+                        </button>
+                        <button onclick="handleAdminAction('${log.id}', 'approved', '${log.user_name}', '${log.project_name}')" class="flex-1 md:flex-none flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                            <i class="fa-solid fa-check mr-1"></i> อนุมัติการใช้
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        // Needs to be global for onclick in generated HTML
+        window.handleAdminAction = async (id, action, userName, projectName) => {
+            if (!confirm(`ยืนยันการ ${action === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'}?`)) return;
+            try {
+                await updateDoc(doc(db, 'usage_logs', id), {
+                    status: action,
+                    'timestamps.approved_at': serverTimestamp()
+                });
+                
+                const msg = `🔔 <b>แจ้งผลการขอใช้ห้อง</b>\n\nผู้ขอ: ${userName}\nโครงงาน: ${projectName}\n\nสถานะ: <b>${action === 'approved' ? '✅ อนุมัติแล้ว (เตรียม Check-in)' : '❌ ไม่อนุมัติ'}</b>`;
+                await sendTelegramMessage(msg);
+                showToast('ดำเนินการสำเร็จ', 'success');
+            } catch (err) {
+                showToast("Error: " + err.message, 'error');
+            }
+        };
+
+    </script>
+</body>
+</html>
