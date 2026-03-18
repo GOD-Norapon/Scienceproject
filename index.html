@@ -188,23 +188,24 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular) -->
+    <!-- Firebase SDK (Modular) - ไม่มีส่วนของ Storage แล้ว -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // --- CONFIGURATION ---
         const SUPER_ADMIN = "norapon@srisawat.ac.th";
         const TG_TOKEN = "8035118786:AAGvQMvbgpGRQxvPTHxA3gWh-LjPt7nhfYg";
         const TG_CHAT = "7742623919";
 
+        // ⚠️ วาง URL Web App ของ Google Apps Script ของคุณที่นี่ ⚠️
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyvG9F4Ym9zokhx-hPPi_uzKVEE98B8HE6qpWPQ-e4DfG3zmt8-8syozqZeNlpZV4aK/exec"; 
+
         const firebaseConfig = {
             apiKey: "AIzaSyCcbi_mXodVvLwitoWO7QSyFPzLQOkJy0w",
             authDomain: "scienceproject-1cd9f.firebaseapp.com",
             projectId: "scienceproject-1cd9f",
-            storageBucket: "scienceproject-1cd9f.firebasestorage.app",
             messagingSenderId: "1077097234623",
             appId: "1:1077097234623:web:5b2540c9721e5384b6860a",
             measurementId: "G-M0CXTHLN1X"
@@ -214,7 +215,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
 
         // --- STATE ---
         let currentUser = null;
@@ -252,7 +252,7 @@
             }
         };
 
-        // --- UTILITY: Image Compression ---
+        // --- UTILITY: Image Compression & Base64 ---
         const compressImage = (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -272,6 +272,15 @@
                         canvas.toBlob((blob) => { resolve(blob); }, 'image/jpeg', 0.6);
                     };
                 };
+            });
+        };
+
+        const blobToBase64 = (blob) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                reader.onloadend = () => resolve(reader.result.split(',')[1]); // เอาเฉพาะส่วน data string 
+                reader.onerror = reject;
             });
         };
 
@@ -476,7 +485,7 @@
             } else {
                 activeList.innerHTML = activeGroups.map(group => `
                     <div class="bg-white p-4 rounded-xl border border-green-200 shadow-sm flex items-start space-x-4">
-                        <img src="${group.images?.before_url || ''}" class="w-20 h-20 object-cover rounded-lg shadow-sm border bg-gray-100" />
+                        <img src="${group.images?.before_url || ''}" class="w-20 h-20 object-cover rounded-lg shadow-sm border bg-gray-100" onerror="this.src='https://placehold.co/100?text=Image+Error'" />
                         <div>
                             <h3 class="font-bold text-gray-800">${group.user_name} (${group.user_room})</h3>
                             <p class="text-sm text-gray-600 truncate max-w-[200px]">${group.project_name}</p>
@@ -494,7 +503,7 @@
                 recentList.innerHTML = recentCompleted.map(group => `
                     <div class="bg-white rounded-xl border overflow-hidden shadow-sm">
                         <div class="relative h-40">
-                            <img src="${group.images.after_url}" class="w-full h-full object-cover bg-gray-100" />
+                            <img src="${group.images.after_url}" class="w-full h-full object-cover bg-gray-100" onerror="this.src='https://placehold.co/400x300?text=Image+Error'" />
                             <div class="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">ทำความสะอาดแล้ว</div>
                         </div>
                         <div class="p-3">
@@ -547,7 +556,7 @@
                         <div class="flex gap-4">
                             <div class="w-1/2">
                                 <p class="text-sm font-medium text-gray-500 mb-2">ภาพก่อนใช้ห้อง (Check-in)</p>
-                                <img src="${log.images.before_url}" class="w-full h-32 object-cover rounded border" />
+                                <img src="${log.images.before_url}" class="w-full h-32 object-cover rounded border" onerror="this.src='https://placehold.co/300?text=Image+Error'" />
                             </div>
                             <div class="w-1/2">
                                 <p class="text-sm font-medium text-gray-500 mb-2">ภาพหลังทำความสะอาด</p>
@@ -582,20 +591,42 @@
             const handleUpload = async (e, isCheckIn) => {
                 const file = e.target.files[0];
                 if(!file) return;
+
+                if (GAS_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE") {
+                    showToast("กรุณาใส่ URL ของ Google Apps Script ในโค้ดก่อนครับ", "error");
+                    return;
+                }
                 
                 const lbl = document.getElementById('lbl-upload');
                 lbl.classList.add('opacity-50', 'pointer-events-none');
-                lbl.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังอัปโหลด...`;
+                lbl.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังอัปโหลดไปยัง Google Drive...`;
 
                 try {
                     const logId = e.target.dataset.logid;
                     const compressedBlob = await compressImage(file);
-                    const filename = `proofs/${logId}_${isCheckIn ? 'before' : 'after'}_${Date.now()}.jpg`;
-                    const storageRef = ref(storage, filename);
+                    const base64Data = await blobToBase64(compressedBlob);
                     
-                    await uploadBytes(storageRef, compressedBlob);
-                    const downloadURL = await getDownloadURL(storageRef);
+                    const filename = `proofs_${logId}_${isCheckIn ? 'before' : 'after'}_${Date.now()}.jpg`;
 
+                    // ส่งไฟล์ผ่าน POST ไปยัง Google Apps Script
+                    const response = await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            filename: filename,
+                            mimeType: 'image/jpeg',
+                            fileData: base64Data
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.status !== 'success') {
+                        throw new Error(result.message || 'การเชื่อมต่อกับ Google Drive ล้มเหลว');
+                    }
+
+                    const downloadURL = result.url; // ได้ลิงก์จาก Google Drive
+
+                    // บันทึกลิงก์ Google Drive ลงใน Firebase Firestore
                     const logRef = doc(db, 'usage_logs', logId);
                     if (isCheckIn) {
                         await updateDoc(logRef, {
