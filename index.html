@@ -135,6 +135,9 @@
                 <button data-target="session" class="menu-btn flex-shrink-0 md:flex-shrink w-auto md:w-full flex items-center space-x-3 px-5 py-3.5 rounded-xl text-left transition-all text-gray-600 hover:bg-white hover:shadow border border-transparent font-medium">
                     <i class="fa-solid fa-camera-retro w-5 text-center text-lg"></i> <span>ห้องของฉัน (Check-in)</span>
                 </button>
+                <button data-target="borrow" class="menu-btn flex-shrink-0 md:flex-shrink w-auto md:w-full flex items-center space-x-3 px-5 py-3.5 rounded-xl text-left transition-all text-gray-600 hover:bg-white hover:shadow border border-transparent font-medium">
+                    <i class="fa-solid fa-toolbox w-5 text-center text-lg"></i> <span>ยืม-คืนอุปกรณ์</span>
+                </button>
                 <button data-target="admin" id="menu-btn-admin" class="menu-btn hidden flex-shrink-0 md:flex-shrink w-auto md:w-full flex items-center space-x-3 px-5 py-3.5 rounded-xl text-left transition-all bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-transparent font-medium">
                     <i class="fa-solid fa-shield-halved w-5 text-center text-lg"></i> <span>จัดการคำขอ (ครู)</span>
                 </button>
@@ -169,12 +172,12 @@
                         
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-2">จะทำการทดลองอะไร / กิจกรรมที่จะทำ</label>
-                            <textarea id="req-experiment" required rows="2" placeholder="อธิบายสั้นๆ ว่าจะเข้ามาทำอะไร เช่น ทดสอบวงจรเซนเซอร์, หล่อชิ้นงาน, ประกอบโครงสร้าง..." class="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"></textarea>
+                            <textarea id="req-experiment" required rows="2" placeholder="อธิบายสั้นๆ ว่าจะเข้ามาทำการทดลองอะไร" class="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"></textarea>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">อุปกรณ์ที่ต้องการใช้ (ถ้ามี)</label>
-                            <input type="text" id="req-tools" placeholder="ระบุอุปกรณ์ เช่น หัวแร้ง, สว่าน, เครื่องพิมพ์ 3 มิติ..." class="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">อุปกรณ์ที่ต้องการใช้ในห้อง (ถ้ามี)</label>
+                            <input type="text" id="req-tools" placeholder="ระบุอุปกรณ์ เช่น บีกเกอร์ ตู้อบ" class="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -206,15 +209,62 @@
                     </div>
                 </div>
 
+                <!-- View: Borrow / Return -->
+                <div id="view-borrow" class="view-section hidden max-w-3xl mx-auto animate-fade-in space-y-10">
+                    <!-- Borrow Form -->
+                    <div class="bg-white">
+                        <h2 class="text-3xl font-bold mb-6 flex items-center text-gray-800 border-b pb-2"><i class="fa-solid fa-toolbox mr-3 text-purple-600"></i> ขอยืมอุปกรณ์</h2>
+                        <form id="borrow-form" class="space-y-5 bg-purple-50/50 p-6 rounded-2xl border border-purple-100">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">ระบุอุปกรณ์ที่ต้องการยืม (พร้อมจำนวน)</label>
+                                <textarea id="borrow-equipment" required rows="2" placeholder="เช่น มัลติมิเตอร์ 1 เครื่อง, Arduino 2 บอร์ด" class="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-shadow"></textarea>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">วันที่ต้องการยืม</label>
+                                    <input type="date" id="borrow-start-date" required class="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 focus:ring-2 focus:ring-purple-500 transition-shadow">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">วันที่คาดว่าจะคืน</label>
+                                    <input type="date" id="borrow-return-date" required class="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 focus:ring-2 focus:ring-purple-500 transition-shadow">
+                                </div>
+                            </div>
+                            <button type="submit" id="borrow-submit-btn" class="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl text-lg font-bold text-white bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 transition-all shadow-md">
+                                <i class="fa-solid fa-paper-plane mr-2"></i> ส่งคำขอยืมอุปกรณ์
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Borrow History -->
+                    <div>
+                        <h3 class="text-2xl font-bold flex items-center mb-6 text-gray-800 border-b pb-2"><i class="fa-solid fa-clock-rotate-left mr-3 text-blue-500"></i> ประวัติการยืม-คืนของฉัน</h3>
+                        <div id="borrow-list" class="space-y-4">
+                            <!-- Content injected by JS -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- View: Admin Panel -->
-                <div id="view-admin" class="view-section hidden animate-fade-in">
-                    <h2 class="text-3xl font-bold flex items-center mb-8 text-gray-800 border-b pb-3"><i class="fa-solid fa-clipboard-check mr-3 text-yellow-500"></i> แผงควบคุม (อนุมัติคำขอ)</h2>
-                    <div id="admin-list" class="space-y-5">
-                        <!-- Content injected by JS -->
+                <div id="view-admin" class="view-section hidden animate-fade-in space-y-12">
+                    
+                    <!-- Admin: Room Requests -->
+                    <div>
+                        <h2 class="text-3xl font-bold flex items-center mb-6 text-gray-800 border-b pb-3"><i class="fa-solid fa-clipboard-check mr-3 text-yellow-500"></i> อนุมัติการใช้ห้อง</h2>
+                        <div id="admin-list" class="space-y-5">
+                            <!-- Content injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Admin: Borrow Requests -->
+                    <div>
+                        <h2 class="text-3xl font-bold flex items-center mb-6 text-gray-800 border-b pb-3"><i class="fa-solid fa-boxes-stacked mr-3 text-purple-600"></i> จัดการรายการยืม-คืนอุปกรณ์</h2>
+                        <div id="admin-borrow-list" class="space-y-5">
+                            <!-- Content injected by JS -->
+                        </div>
                     </div>
                     
                     <!-- Super Admin Section (Manage other admins) -->
-                    <div id="super-admin-section" class="hidden mt-12 bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                    <div id="super-admin-section" class="hidden bg-gray-50 p-6 rounded-2xl border border-gray-200">
                         <h3 class="text-xl font-bold mb-4 flex items-center text-gray-800"><i class="fa-solid fa-users-gear mr-2 text-gray-600"></i> เพิ่ม/ลด สิทธิ์ครูแอดมิน</h3>
                         <p class="text-sm text-gray-500 mb-4">อีเมลที่อยู่ในรายชื่อนี้ จะสามารถเข้ามาเห็นเมนูอนุมัติได้</p>
                         <form id="add-admin-form" class="flex flex-col sm:flex-row gap-3 mb-6">
@@ -268,6 +318,7 @@
         let currentUser = null;
         let userProfile = null;
         let allLogs = [];
+        let allBorrowLogs = [];
         let adminEmailsList = [];
         let isLoginMode = true;
 
@@ -480,6 +531,7 @@
         });
 
         let unsubscribeLogs = null;
+        let unsubscribeBorrowLogs = null;
         let unsubscribeAdmins = null;
 
         const initMainApp = async () => {
@@ -517,8 +569,10 @@
             
             // Set default date to today
             document.getElementById('req-date').valueAsDate = new Date();
+            document.getElementById('borrow-start-date').valueAsDate = new Date();
+            document.getElementById('borrow-return-date').valueAsDate = new Date();
 
-            // Setup Realtime Listener for Logs
+            // Setup Realtime Listener for Room Logs
             if (unsubscribeLogs) unsubscribeLogs();
             unsubscribeLogs = onSnapshot(collection(db, 'usage_logs'), (snapshot) => {
                 allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -528,11 +582,21 @@
                 renderSession();
                 if(window.isAdmin) renderAdmin();
             });
+
+            // Setup Realtime Listener for Borrow Logs
+            if (unsubscribeBorrowLogs) unsubscribeBorrowLogs();
+            unsubscribeBorrowLogs = onSnapshot(collection(db, 'borrow_logs'), (snapshot) => {
+                allBorrowLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allBorrowLogs.sort((a, b) => (b.timestamps?.requested_at?.toMillis() || 0) - (a.timestamps?.requested_at?.toMillis() || 0));
+                
+                renderBorrowSession();
+                if(window.isAdmin) renderAdminBorrow();
+            });
             
             switchView('dashboard');
         };
 
-        // --- REQUEST FORM LOGIC ---
+        // --- ROOM REQUEST FORM LOGIC ---
         document.getElementById('request-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('req-submit-btn');
@@ -548,7 +612,7 @@
             try {
                 await addDoc(collection(db, 'usage_logs'), {
                     user_ref: currentUser.uid,
-                    user_email: currentUser.email, // To send email later
+                    user_email: currentUser.email,
                     user_name: userProfile.full_name,
                     user_room: userProfile.room,
                     project_name: userProfile.default_project_name,
@@ -567,7 +631,6 @@
 
                 showToast('ส่งคำขอเรียบร้อยแล้ว กรุณารอครูอนุมัติ', 'success');
                 
-                // Reset form
                 document.getElementById('req-experiment').value = '';
                 document.getElementById('req-tools').value = '';
                 document.getElementById('req-start-time').value = '';
@@ -579,6 +642,44 @@
             
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> ส่งคำขอให้ครูอนุมัติ';
+        });
+
+        // --- BORROW FORM LOGIC ---
+        document.getElementById('borrow-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('borrow-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังส่งคำขอ...';
+
+            const equipment = document.getElementById('borrow-equipment').value;
+            const startDate = document.getElementById('borrow-start-date').value;
+            const returnDate = document.getElementById('borrow-return-date').value;
+
+            try {
+                await addDoc(collection(db, 'borrow_logs'), {
+                    user_ref: currentUser.uid,
+                    user_email: currentUser.email,
+                    user_name: userProfile.full_name,
+                    user_room: userProfile.room,
+                    project_name: userProfile.default_project_name,
+                    equipment: equipment,
+                    borrow_date: startDate,
+                    return_date: returnDate,
+                    status: 'pending',
+                    timestamps: { requested_at: serverTimestamp() }
+                });
+
+                const msg = `📢 <b>ขอยืมอุปกรณ์ใหม่</b>\n\n👤 <b>ผู้ขอ:</b> ${userProfile.full_name} (${userProfile.room})\n🛠 <b>อุปกรณ์:</b> ${equipment}\n📅 <b>วันที่ยืม:</b> ${startDate}\n📅 <b>กำหนดคืน:</b> ${returnDate}\n\n👉 <a href="https://god-norapon.github.io/Scienceproject/">เข้าสู่ระบบเพื่ออนุมัติ</a>`;
+                await sendTelegramMessage(msg);
+
+                showToast('ส่งคำขอยืมเรียบร้อย รอครูอนุมัติ', 'success');
+                document.getElementById('borrow-equipment').value = '';
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> ส่งคำขอยืมอุปกรณ์';
         });
 
         // --- DASHBOARD RENDERER ---
@@ -628,7 +729,7 @@
             }
         };
 
-        // --- SESSION RENDERER ---
+        // --- SESSION (ROOM) RENDERER ---
         const renderSession = () => {
             const container = document.getElementById('session-container');
             const myActiveLogs = allLogs.filter(d => d.user_ref === currentUser.uid && d.status !== 'completed');
@@ -644,7 +745,6 @@
 
             let htmlContent = '';
 
-            // Loop to render ALL active requests for this user
             myActiveLogs.forEach(log => {
                 let statusBadge = '';
                 let contentHTML = '';
@@ -721,7 +821,6 @@
 
             container.innerHTML = htmlContent;
 
-            // Define the upload handler function
             const handleUpload = async (e, isCheckIn) => {
                 const file = e.target.files[0];
                 if(!file) return;
@@ -772,7 +871,6 @@
                 }
             };
 
-            // Attach event listeners for dynamic file inputs for ALL items in the list
             myActiveLogs.forEach(log => {
                 if (log.status === 'approved') {
                     const checkinInput = document.getElementById(`file-checkin-${log.id}`);
@@ -785,43 +883,134 @@
             });
         };
 
-        // --- ADMIN RENDERER ---
-        const renderAdmin = () => {
-            const container = document.getElementById('admin-list');
-            const pendingReqs = allLogs.filter(l => l.status === 'pending');
+        // --- SESSION (BORROW) RENDERER ---
+        const renderBorrowSession = () => {
+            const container = document.getElementById('borrow-list');
+            const myBorrowLogs = allBorrowLogs.filter(d => d.user_ref === currentUser.uid);
 
-            if (pendingReqs.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 px-4 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 text-gray-400"><i class="fa-solid fa-check-double text-5xl mb-3 opacity-50"></i><p class="text-lg">ไม่มีคำขอที่รอการอนุมัติในขณะนี้</p></div>`;
+            if (myBorrowLogs.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+                        <i class="fa-solid fa-box-open text-4xl mb-3 text-gray-300"></i>
+                        <p>ไม่มีประวัติการยืมอุปกรณ์</p>
+                    </div>`;
                 return;
             }
 
-            container.innerHTML = pendingReqs.map(log => `
-                <div class="bg-white p-6 rounded-2xl border-l-4 border-l-yellow-400 border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                    <div class="flex-1">
-                        <div class="flex flex-wrap items-baseline gap-2 mb-1">
-                            <h3 class="font-bold text-xl text-gray-900">${log.user_name}</h3>
-                            <span class="text-sm font-medium px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-600">${log.user_room}</span>
+            container.innerHTML = myBorrowLogs.map(log => {
+                let statusBadge, borderColor;
+                if (log.status === 'pending') {
+                    statusBadge = `<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-md text-xs font-bold"><i class="fa-solid fa-hourglass-half mr-1"></i> รออนุมัติ</span>`;
+                    borderColor = 'border-yellow-200 border-l-4 border-l-yellow-400';
+                } else if (log.status === 'approved') {
+                    statusBadge = `<span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-md text-xs font-bold animate-pulse"><i class="fa-solid fa-boxes-packing mr-1"></i> กำลังยืม (รอคืน)</span>`;
+                    borderColor = 'border-purple-200 border-l-4 border-l-purple-500';
+                } else if (log.status === 'returned') {
+                    statusBadge = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-md text-xs font-bold"><i class="fa-solid fa-check mr-1"></i> คืนแล้ว</span>`;
+                    borderColor = 'border-green-200 border-l-4 border-l-green-500';
+                } else {
+                    statusBadge = `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-md text-xs font-bold"><i class="fa-solid fa-xmark mr-1"></i> ไม่อนุมัติ</span>`;
+                    borderColor = 'border-red-200 border-l-4 border-l-red-500';
+                }
+
+                return `
+                    <div class="bg-white p-4 rounded-xl border ${borderColor} shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                            <h4 class="font-bold text-gray-800">${log.equipment}</h4>
+                            <p class="text-xs text-gray-500 mt-1"><i class="fa-regular fa-calendar mr-1"></i> ยืม: ${log.borrow_date} | คืน: ${log.return_date}</p>
                         </div>
-                        <p class="text-gray-700 font-medium mt-2"><i class="fa-solid fa-flask text-blue-500 mr-1.5 w-4"></i> ${log.project_name}</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4 mt-2 text-sm text-gray-600">
-                            <p><i class="fa-solid fa-calendar-day text-gray-400 mr-1.5 w-4"></i> <b>วันที่:</b> ${log.date || '-'}</p>
-                            <p><i class="fa-solid fa-clock text-gray-400 mr-1.5 w-4"></i> <b>เวลา:</b> ${log.start_time || '-'} ถึง ${log.end_time || '-'}</p>
-                            <p class="sm:col-span-2"><i class="fa-solid fa-flask-vial text-blue-500 mr-1.5 w-4"></i> <b class="text-blue-700">การทดลอง/กิจกรรม:</b> <span class="text-gray-800">${log.experiment || '-'}</span></p>
-                            <p class="sm:col-span-2"><i class="fa-solid fa-toolbox text-gray-400 mr-1.5 w-4"></i> <b>อุปกรณ์:</b> ${log.tools || '-'}</p>
-                        </div>
+                        <div>${statusBadge}</div>
                     </div>
-                    <div class="flex gap-3 w-full lg:w-auto">
-                        <button onclick="handleAdminAction('${log.id}', 'rejected', '${log.user_name}', '${log.project_name}')" class="flex-1 lg:flex-none justify-center px-5 py-2.5 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors flex items-center shadow-sm">
-                            <i class="fa-solid fa-xmark mr-2 text-lg"></i> ไม่อนุมัติ
-                        </button>
-                        <button onclick="handleAdminAction('${log.id}', 'approved', '${log.user_name}', '${log.project_name}')" class="flex-1 lg:flex-none justify-center px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all flex items-center shadow-md hover:shadow-lg hover:-translate-y-0.5">
-                            <i class="fa-solid fa-check mr-2 text-lg"></i> อนุมัติการใช้
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         };
 
+        // --- ADMIN RENDERER (ROOM & BORROW) ---
+        const renderAdmin = () => {
+            const containerRoom = document.getElementById('admin-list');
+            const pendingRoomReqs = allLogs.filter(l => l.status === 'pending');
+
+            if (pendingRoomReqs.length === 0) {
+                containerRoom.innerHTML = `<div class="text-center py-8 px-4 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 text-gray-400"><p>ไม่มีคำขอใช้ห้องที่รอการอนุมัติ</p></div>`;
+            } else {
+                containerRoom.innerHTML = pendingRoomReqs.map(log => `
+                    <div class="bg-white p-6 rounded-2xl border-l-4 border-l-yellow-400 border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                        <div class="flex-1">
+                            <div class="flex flex-wrap items-baseline gap-2 mb-1">
+                                <h3 class="font-bold text-xl text-gray-900">${log.user_name}</h3>
+                                <span class="text-sm font-medium px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-600">${log.user_room}</span>
+                            </div>
+                            <p class="text-gray-700 font-medium mt-2"><i class="fa-solid fa-flask text-blue-500 mr-1.5 w-4"></i> ${log.project_name}</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4 mt-2 text-sm text-gray-600">
+                                <p><i class="fa-solid fa-calendar-day text-gray-400 mr-1.5 w-4"></i> <b>วันที่:</b> ${log.date || '-'}</p>
+                                <p><i class="fa-solid fa-clock text-gray-400 mr-1.5 w-4"></i> <b>เวลา:</b> ${log.start_time || '-'} ถึง ${log.end_time || '-'}</p>
+                                <p class="sm:col-span-2"><i class="fa-solid fa-flask-vial text-blue-500 mr-1.5 w-4"></i> <b class="text-blue-700">การทดลอง/กิจกรรม:</b> <span class="text-gray-800">${log.experiment || '-'}</span></p>
+                                <p class="sm:col-span-2"><i class="fa-solid fa-toolbox text-gray-400 mr-1.5 w-4"></i> <b>อุปกรณ์:</b> ${log.tools || '-'}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 w-full lg:w-auto">
+                            <button onclick="handleAdminAction('${log.id}', 'rejected', '${log.user_name}', '${log.project_name}')" class="flex-1 lg:flex-none justify-center px-5 py-2.5 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50 transition-colors flex items-center shadow-sm">
+                                <i class="fa-solid fa-xmark mr-2 text-lg"></i> ไม่อนุมัติ
+                            </button>
+                            <button onclick="handleAdminAction('${log.id}', 'approved', '${log.user_name}', '${log.project_name}')" class="flex-1 lg:flex-none justify-center px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all flex items-center shadow-md">
+                                <i class="fa-solid fa-check mr-2 text-lg"></i> อนุมัติการใช้
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        };
+
+        const renderAdminBorrow = () => {
+            const containerBorrow = document.getElementById('admin-borrow-list');
+            const activeBorrowReqs = allBorrowLogs.filter(l => l.status === 'pending' || l.status === 'approved');
+
+            if (activeBorrowReqs.length === 0) {
+                containerBorrow.innerHTML = `<div class="text-center py-8 px-4 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 text-gray-400"><p>ไม่มีรายการยืม-คืนที่ต้องจัดการ</p></div>`;
+            } else {
+                containerBorrow.innerHTML = activeBorrowReqs.map(log => {
+                    let actionButtons = '';
+                    let borderColor = '';
+                    
+                    if (log.status === 'pending') {
+                        borderColor = 'border-yellow-400';
+                        actionButtons = `
+                            <button onclick="handleAdminBorrowAction('${log.id}', 'rejected', '${log.user_name}', '${log.equipment}')" class="flex-1 lg:flex-none justify-center px-4 py-2 border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 flex items-center text-sm">
+                                <i class="fa-solid fa-xmark mr-1.5"></i> ไม่อนุมัติ
+                            </button>
+                            <button onclick="handleAdminBorrowAction('${log.id}', 'approved', '${log.user_name}', '${log.equipment}')" class="flex-1 lg:flex-none justify-center px-4 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 flex items-center shadow text-sm">
+                                <i class="fa-solid fa-check mr-1.5"></i> อนุมัติให้ยืม
+                            </button>
+                        `;
+                    } else if (log.status === 'approved') {
+                        borderColor = 'border-purple-500 bg-purple-50/30';
+                        actionButtons = `
+                            <button onclick="handleAdminBorrowAction('${log.id}', 'returned', '${log.user_name}', '${log.equipment}')" class="w-full lg:w-auto justify-center px-5 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all flex items-center shadow-md border-2 border-green-600 hover:scale-105">
+                                <i class="fa-solid fa-box-check mr-2"></i> กดรับคืนอุปกรณ์แล้ว
+                            </button>
+                        `;
+                    }
+
+                    return `
+                        <div class="bg-white p-5 rounded-xl border-l-4 ${borderColor} border border-gray-200 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                            <div class="flex-1 w-full">
+                                <div class="flex justify-between">
+                                    <h3 class="font-bold text-gray-900">${log.user_name} <span class="text-xs font-normal text-gray-500 ml-1">(${log.user_room})</span></h3>
+                                    ${log.status === 'approved' ? '<span class="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded">กำลังยืมอยู่</span>' : ''}
+                                </div>
+                                <p class="text-purple-800 font-bold mt-1 text-lg"><i class="fa-solid fa-toolbox text-purple-400 mr-1.5"></i> ${log.equipment}</p>
+                                <p class="text-xs text-gray-500 mt-1"><i class="fa-regular fa-calendar mr-1"></i> ยืม: ${log.borrow_date} | กำหนดคืน: ${log.return_date}</p>
+                            </div>
+                            <div class="flex gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+                                ${actionButtons}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        };
+
+        // --- ACTIONS HANDLERS ---
         window.handleAdminAction = async (id, action, userName, projectName) => {
             if (!confirm(`ยืนยันการ ${action === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'}?`)) return;
             try {
@@ -833,30 +1022,60 @@
 
                 showToast('ดำเนินการสำเร็จ ระบบกำลังส่งอีเมล...', 'success');
 
-                // ดึงข้อมูลอีเมลนักเรียนจากตัวแปร allLogs
                 const logData = allLogs.find(l => l.id === id);
-
                 if (logData && logData.user_email) {
                     const subjectText = 'แจ้งผลการขอใช้ห้องโครงงานวิทยาศาสตร์';
                     const actionText = action === 'approved' ? '✅ อนุมัติ' : '❌ ไม่อนุมัติ';
                     let bodyText = `สวัสดี ${userName},\n\nคำขอใช้ห้องโครงงาน "${projectName}" ของคุณได้รับการ ${actionText} แล้ว\n`;
                     if (action === 'approved') {
-                        bodyText += `\nหมายเหตุ: กรุณาดูแลความสะอาดของห้องและอุปกรณ์ให้เรียบร้อยด้วยนะครับ/ค่ะ\n\nเมื่อเสร็จสิ้นอย่าลืมเข้าสู่ระบบเพื่อ Check-out ทยอยรูปห้องที่ทำความสะอาดแล้วด้วยครับ`;
+                        bodyText += `\nหมายเหตุ: กรุณาดูแลความสะอาดของห้องและอุปกรณ์ให้เรียบร้อยด้วยนะครับ/ค่ะ\n\nเมื่อเสร็จสิ้นอย่าลืมเข้าสู่ระบบเพื่อ Check-out ถ่ายรูปห้องที่ทำความสะอาดแล้วด้วยครับ`;
                     }
-                    bodyText += `\n\nขอบคุณครับ`;
+                    bodyText += `\n\nระบบขอใช้ห้องโครงงานวิทยาศาสตร์`;
 
-                    // ส่ง Request ไปหา Google Apps Script เพื่อส่งอีเมล
                     await fetch(GAS_URL, {
                         method: 'POST',
-                        body: JSON.stringify({
-                            action: 'sendEmail',
-                            email: logData.user_email,
-                            subject: subjectText,
-                            body: bodyText
-                        })
+                        body: JSON.stringify({ action: 'sendEmail', email: logData.user_email, subject: subjectText, body: bodyText })
                     });
                 }
+            } catch (err) {
+                showToast("Error: " + err.message, 'error');
+            }
+        };
+
+        window.handleAdminBorrowAction = async (id, action, userName, equipment) => {
+            let confirmMsg = action === 'returned' ? 'ยืนยันว่าได้รับอุปกรณ์คืนเรียบร้อยแล้ว?' : `ยืนยันการ ${action === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'} ให้ยืมอุปกรณ์?`;
+            if (!confirm(confirmMsg)) return;
+            
+            try {
+                const logRef = doc(db, 'borrow_logs', id);
+                let updateData = { status: action };
                 
+                if(action === 'approved') updateData['timestamps.approved_at'] = serverTimestamp();
+                if(action === 'returned') updateData['timestamps.returned_at'] = serverTimestamp();
+                
+                await updateDoc(logRef, updateData);
+                showToast('อัปเดตสถานะสำเร็จ', 'success');
+
+                const logData = allBorrowLogs.find(l => l.id === id);
+                if (logData && logData.user_email) {
+                    let subjectText = 'แจ้งผลการขอยืมอุปกรณ์';
+                    let bodyText = `สวัสดี ${userName},\n\n`;
+                    
+                    if (action === 'approved') {
+                        bodyText += `คำขอยืมอุปกรณ์ "${equipment}" ของคุณได้รับการ ✅ อนุมัติ แล้ว\nกรุณามารับอุปกรณ์และนำส่งคืนตามกำหนดด้วยครับ`;
+                    } else if (action === 'rejected') {
+                        bodyText += `คำขอยืมอุปกรณ์ "${equipment}" ของคุณ ❌ ไม่อนุมัติ`;
+                    } else if (action === 'returned') {
+                        subjectText = 'ได้รับอุปกรณ์คืนเรียบร้อยแล้ว';
+                        bodyText += `ทางเราได้รับอุปกรณ์ "${equipment}" คืนเรียบร้อยแล้ว\nขอบคุณที่นำส่งคืนครับ`;
+                    }
+                    bodyText += `\n\nระบบขอใช้ห้องโครงงานวิทยาศาสตร์`;
+
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'sendEmail', email: logData.user_email, subject: subjectText, body: bodyText })
+                    });
+                }
             } catch (err) {
                 showToast("Error: " + err.message, 'error');
             }
